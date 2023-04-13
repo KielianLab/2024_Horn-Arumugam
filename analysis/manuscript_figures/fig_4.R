@@ -1,8 +1,8 @@
 ## Made by Christopher M. Horn, MS
 ## Kielian Lab data
-## Code for Figure 4H in Horn et al., 2023
+## Code for Figure 4A in Horn et al., 2023
 ## Created: 2023-01-23
-## Updated: 2023-03-28
+## Updated: 2023-04-11
 
 ## Setting up environment ----
 # Load in packages
@@ -98,7 +98,7 @@ vln3 <- VlnPlot(
 vln <- vln1 | vln2 | vln3
 
 ggsave(
-  "Figure 4H.tiff",
+  "Figure 4A.tiff",
   plot = vln,
   device = "tiff",
   path = here("Figure 4")
