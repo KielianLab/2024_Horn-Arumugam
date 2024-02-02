@@ -1,11 +1,10 @@
-## Made by Christopher M. Horn, MS
+## Made by Christopher M. Horn, PhD
 ## Kielian Lab data
-## Code for figures in Horn et al., 2023
+## Code for figures in Horn et al., 2024
 ## Created: 2023-01-23
-## Updated: 2023-03-17
+## Updated: 2024-02-02
 
 ## Setting up environment ----
-
 # Load in packages
 packages <- c(
   "tidyverse",
@@ -23,47 +22,36 @@ packages <- c(
   "reshape2",
   "ggpubr",
   "ggrepel",
-  "ggvenn"
+  "ggvenn",
+  "devEMF"
 )
 
 # Check overlap between existing & new packages; install new (if any)
-new.packages <- packages[!(packages %in% installed.packages()[, "Package"])]
-if(length(new.packages)) install.packages(new.packages)
-
+installed <- suppressWarnings(sapply(packages, require, character.only = TRUE))
+BiocManager::install(names(installed)[!installed])
+install.packages(names(installed)[!installed])
 invisible(lapply(packages, library, character.only = TRUE))
 
 rm(
   packages,
-  new.packages
+  installed
 )
-
 gc()
 
 # Set options
 options(future.globals.maxSize = 4000 * 1024^2)
 set.seed(12345)
 
-
-
 # Save session info
 writeLines(capture.output(sessionInfo()), here("sessionInfo.txt"))
 
-
-
-
-
 ## Figure 1B ----
-
 # Load in data
 integrated <- readRDS(here("Figure 1", "Figure 1.rds"))
 dimred <- readRDS(here("Figure 1", "Figure 1 dim red.rds")) # Was calculated outside of the normal Seurat workflow & used for downstream analysis
 
-
-
 # Add custom dimensional reduction
 integrated[["umap"]] <- CreateDimReducObject(embeddings = dimred, key = "UMAP_", assay = DefaultAssay(integrated))
-
-
 
 # Create plot
 p <- DimPlot(
@@ -80,42 +68,34 @@ p <- DimPlot(
 
 p <- p + theme(legend.position = "bottom")
 
-
-
 # Save plot
 ggsave(
-  "Figure 1B.tiff",
+  "emf__Figure 1B.emf",
   plot = p,
-  device = "tiff",
+  device = devEMF::emf(),
+  width = 3587,
+  height = 2799,
+  unit = "px",
+  dpi = 600,
   path = here("Figure 1")
 )
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure 1C ----
-
 # Load in data
 integrated <- readRDS(here("Figure 1", "Figure 1.rds"))
 DefaultAssay(integrated) <- "RNA"
 integrated <- NormalizeData(integrated)
 integrated <- ScaleData(integrated)
 
-
-
 # Calculate cluster-averaged normalized counts
 avg <- AverageExpression(integrated, return.seurat = TRUE)
-avg.norm_counts <- avg@assays$RNA@data
+avg.norm_counts <- avg[["RNA"]]$data
 avg.norm_counts <- as.data.frame(avg.norm_counts)
 avg.norm_counts <- rownames_to_column(avg.norm_counts, var = "gene")
-
-
 
 # Filter averaged normalized counts for genes of interest & convert back into a matrix
 gene_list <- c(
@@ -147,8 +127,6 @@ heatmap.data <- avg.norm_counts %>%
   filter(gene %in% gene_list)
 heatmap.data <- column_to_rownames(heatmap.data, var = "gene")
 heatmap.data <- as.matrix(heatmap.data)
-
-
 
 ## Create vectors for column/row annotations
 col_anno <- c(
@@ -194,8 +172,6 @@ row_anno <- c(
   "PMN genes"
 )
 
-
-
 # Find the NES value that is furthest from zero & use it to set heatmap scale range
 htmp_range <- c(max(heatmap.data), -min(heatmap.data))
 htmp_range <- max(htmp_range)
@@ -204,10 +180,12 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c(0, htmp_range), c("white", "red"))
 
 # Create & save heatmap
-png(
-  here("Figure 1", "Figure 1C.png"),
-  width = 400,
-  height = 550
+devEMF::emf(
+  here("Figure 1", "emf__Figure 1C.emf"),
+  units = "mm",
+  width = 130,
+  height = 150,
+  coordDPI = 600
 )
 
 ht <- Heatmap(
@@ -234,27 +212,17 @@ ht <- Heatmap(
   }
 )
 
-
-
 # Adjust heatmap paddings
 draw(ht, padding = unit(c(5, 5, 2, 5), "mm")) # bottom, left, top, right paddings
-
-
 
 # Close the device
 dev.off()
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure 2A ----
-
 # Read in pathway data & select only granulocytic data
 integrated <- readRDS(here("Figure 2", "Figure 2.rds"))
 DefaultAssay(integrated) <- "RNA"
@@ -262,7 +230,7 @@ integrated <- NormalizeData(integrated)
 integrated <- ScaleData(integrated)
 
 avg <- AverageExpression(integrated, return.seurat = TRUE)
-avg.norm_counts <- avg@assays$RNA@data
+avg.norm_counts <- avg[["RNA"]]$data
 avg.norm_counts <- as.data.frame(avg.norm_counts)
 avg.norm_counts <- rownames_to_column(avg.norm_counts, var = "gene")
 
@@ -281,15 +249,11 @@ gene_list <- c(
   "Pgls"
 )
 
-
-
 # Create matrix of NES values, fill with 0 if not found
 heatmap.data <- avg.norm_counts %>%
   filter(gene %in% gene_list)
 heatmap.data <- column_to_rownames(heatmap.data, var = "gene")
 heatmap.data <- as.matrix(heatmap.data)
-
-
 
 # Set custom row order
 col_order <- c(
@@ -306,18 +270,11 @@ col_order <- c(
 )
 
 row_order <- gene_list
-
-
-
 heatmap.data <- heatmap.data[row_order, col_order]
 
 # Make the second heatmap match the row & column order of the first
 col_order <- colnames(heatmap.data)
 row_order <- rownames(heatmap.data)
-
-heatmap2.data <- heatmap2.data[row_order, col_order]
-
-
 
 # Create a vector to split the heatmap according to cluster
 col_anno <- c(
@@ -350,7 +307,6 @@ row_anno <- c(
   "PPP genes"
 )
 
-
 # Find the NES value that is furthest from zero & use it to set heatmap scale range
 htmp_range <- c(max(heatmap.data), -min(heatmap.data))
 htmp_range <- max(htmp_range)
@@ -359,10 +315,12 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c( 0, htmp_range), c("white", "red"))
 
 # Create heatmap
-png(
-  here("Figure 2", "Figure 2A.png"),
-  width = 400,
-  height = 300
+devEMF::emf(
+  here("Figure 2", "emf__Figure 2A.emf"),
+  units = "mm",
+  width = 150,
+  height = 135,
+  coordDPI = 600
 )
 
 ht <- Heatmap(
@@ -395,17 +353,11 @@ draw(ht, padding = unit(c(5, 5, 2, 5), "mm")) # bottom, left, top, right padding
 # Close the device
 dev.off()
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure 2B ----
-
 # Read in pathway data & combine
 h <- read_xlsx(here("Figure 2", "Figure 2B.xlsx"), sheet = "H pathways")
 c2 <- read_xlsx(here("Figure 2", "Figure 2B.xlsx"), sheet = "C2 pathways")
@@ -440,8 +392,6 @@ heatmap2.data <- dcast(heatmap2.data, pathway ~ cluster, value.var = "padj", fil
 heatmap2.data <- column_to_rownames(heatmap2.data, var = "pathway")
 heatmap2.data <- as.matrix(heatmap2.data)
 heatmap2.data <- t(heatmap2.data)
-
-
 
 supp_mat <- matrix(
   0,
@@ -480,8 +430,6 @@ supp_mat2 <- matrix(
 heatmap.data <- rbind(heatmap.data, supp_mat)
 heatmap2.data <- rbind(heatmap2.data, supp_mat2)
 
-
-
 # Set custom row order
 row_order <- c(
   "G1",
@@ -497,8 +445,6 @@ row_order <- c(
   "G10"
 )
 
-
-
 heatmap.data <- heatmap.data[row_order, ]
 
 # Make the second heatmap match the row & column order of the first
@@ -506,8 +452,6 @@ col_order <- colnames(heatmap.data)
 row_order <- rownames(heatmap.data)
 
 heatmap2.data <- heatmap2.data[row_order, col_order]
-
-
 
 # Create a vector to split the heatmap according to cluster
 row_anno <- c(
@@ -524,8 +468,6 @@ row_anno <- c(
   "PMN"
 )
 
-
-
 # Change formatting of pathway names from the defaults
 col_names <- c(
   "Hallmark: Glycolysis",
@@ -536,16 +478,10 @@ col_names <- c(
   "Semenza HIF-1a Targets"
 )
 
-
-
 colnames(heatmap.data) <- col_names
-
-
 
 heatmap.data <- heatmap.data[, colnames(heatmap.data) != "KEGG: Pentose Phosphate Pathway"]
 heatmap2.data <- heatmap2.data[, colnames(heatmap2.data) != "KEGG_PENTOSE_PHOSPHATE_PATHWAY"]
-
-
 
 # Find the NES value that is furthest from zero & use it to set heatmap scale range
 htmp_range <- c(max(heatmap.data), -min(heatmap.data))
@@ -555,10 +491,12 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c(0, htmp_range), c("white", "red"))
 
 # Create heatmap
-png(
-  here("Figure 2", "Figure 2B.png"),
-  width = 200,
-  height = 400
+devEMF::emf(
+  here("Figure 2", "emf__Figure 2B.emf"),
+  units = "mm",
+  width = 75,
+  height = 130,
+  coordDPI = 600
 )
 
 ht <- Heatmap(
@@ -598,18 +536,11 @@ draw(ht, padding = unit(c(10, 5, 2, 5), "mm")) # bottom, left, top, right paddin
 # Close the device
 dev.off()
 
-
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure 2C ----
-
 # Load in data
 compass_results <- read.csv(here("Figure 2", "Figure 2C.csv"))
 
@@ -730,39 +661,27 @@ p5 <- annotate_figure(
   left = textGrob(bquote(-log[10](BH-adjusted~Wilcoxon~rank~sum~p)), rot = 90, vjust = 0.5, gp = gpar(cex = 1.3)),
   bottom = textGrob("Cohen's D", gp = gpar(cex = 1.3)))
 
-
-
 final <- p | figure
 
-
-
 ggsave(
-  "Figure 2C.png",
+  "emf__Figure 2C.emf",
   plot = final,
-  device = "png",
+  device = devEMF::emf(),
   path = here("Figure 2"),
   width = 14,
   height = 7,
-  units = "in"
+  units = "in",
+  dpi = 600
 )
-
-
-
 
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure 2D ----
-
 # Read in data
 compass.cor <- read.csv(here("Figure 2", "Figure 2D.csv")) %>%
   select(-c(X, label_point))
-
-
 
 compass.cor <- compass.cor %>%
   mutate(label_repel = case_when(
@@ -773,8 +692,6 @@ compass.cor <- compass.cor %>%
     TRUE ~ "")) %>%
   filter(!row_number() %in% c(547, 551))
 
-
-
 compass.cor <- compass.cor %>%
   mutate(label_point = case_when(
     subsystem == "Glycolysis/gluconeogenesis" ~ "red",
@@ -782,11 +699,7 @@ compass.cor <- compass.cor %>%
     subsystem != "Glycolysis/gluconeogenesis" | subsystem != "Pentose phosphate pathway" ~ "gray"
   ))
 
-
-
 compass.cor$label_point <- factor(x = compass.cor$label_point, levels = c("gray", "blue", "red"))
-
-
 
 p1 <- ggplot(compass.cor %>% arrange(label_point), aes(x = signed_neg_log_p, y = patho_spearman)) +
   geom_hline(yintercept = 0, linetype = "dashed") +
@@ -813,7 +726,6 @@ p1 <- ggplot(compass.cor %>% arrange(label_point), aes(x = signed_neg_log_p, y =
   ) +
   theme(axis.title = element_text(face = "bold"), legend.position = "bottom")
 
-
 p2_d <- compass.cor %>%
   filter(label_repel != "") %>%
   select(c(metadata_r_id, cohens_d, adjusted_pval, patho_spearman, subsystem)) %>%
@@ -825,31 +737,93 @@ colnames(p2_d) <- c("", "Cohen's D", "Adjusted p", "Spearman Rho w/Pathogenicity
 
 p2 <- ggtexttable(p2_d, rows = NULL, theme = ttheme("light"))
 
-
-
 final <- p1 / p2
 
-
-
 ggsave(
-  "Figure 2D.tiff",
+  "emf__Figure 2D.emf",
   plot = final,
-  device = "tiff",
-  path = here("Figure 2")
+  device = devEMF::emf(),
+  units = "in",
+  width = 8,
+  height = 8,
+  path = here("Figure 2"),
+  dpi = 600
 )
-
-
 
 # Clear the environment
 rm(list = ls())
-
 gc()
 
+## Figure 4A ----
+#Load in data, normalize, scale, & subset
+integrated <- readRDS(here("Figure 4", "Figure 4.rds"))
+DefaultAssay(integrated) <- "RNA"
+integrated <- NormalizeData(integrated)
+integrated <- ScaleData(integrated)
 
+new.cluster.ids <- c(
+  "G1",
+  "G2",
+  "G3",
+  "G4",
+  "G5",
+  "G6",
+  "G7",
+  "G8",
+  "G9",
+  "G10"
+)
+
+names(new.cluster.ids) <- levels(integrated)
+integrated <- RenameIdents(integrated, new.cluster.ids)
+
+# Create plot
+vln1 <- VlnPlot(
+  integrated,
+  features = "Sod2",
+  idents = c("G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10")
+) +
+  NoLegend() +
+  scale_fill_npg() +
+  theme(plot.title = element_text(face = "bold.italic"))
+
+vln2 <- VlnPlot(
+  integrated,
+  features = "Nfe2l2",
+  idents = c("G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10")
+) +
+  NoLegend() +
+  scale_fill_npg() +
+  theme(plot.title = element_text(face = "bold.italic"))
+
+vln3 <- VlnPlot(
+  integrated,
+  features = "Hmox1",
+  idents = c("G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10")
+) +
+  NoLegend() +
+  scale_fill_npg() +
+  theme(plot.title = element_text(face = "bold.italic"))
+
+vln <- vln1 | vln2 | vln3
+
+ggsave(
+  "emf__Figure 4A.emf",
+  plot = vln,
+  device = devEMF::emf(),
+  path = here("Figure 4"),
+  width = 14,
+  height = 7,
+  units = "in",
+  dpi = 600
+)
+
+# Clear the environment
+rm(list = ls())
+gc()
 
 ## Figure 9A ----
-
-#Load in data
+# Load in data
 integrated <- readRDS(here("Figure 9", "Figure 9.rds"))
 
 # Create plot
@@ -866,27 +840,23 @@ integrated_umap.clus <- DimPlot(
   theme(axis.text = element_blank(), axis.ticks = element_blank(), axis.title = element_text(face = "bold", size = 12)
 )
 
-
-
 ggsave(
-  "Figure 9A.tiff",
+  "emf__Figure 9A.emf",
   plot = integrated_umap.clus,
-  device = "tiff",
-  path = here("Figure 9")
+  device = devEMF::emf(),
+  units = "in",
+  width = 8,
+  height = 8,
+  path = here("Figure 9"),
+  dpi = 600
 )
-
-
 
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure 9B ----
-
-#Load in data, normalize, scale, & subset
+# Load in data, normalize, scale, & subset
 integrated <- readRDS(here("Figure 9", "Figure 9.rds"))
 DefaultAssay(integrated) <- "RNA"
 integrated <- NormalizeData(integrated)
@@ -908,8 +878,6 @@ new.cluster.ids <- c(
 
 names(new.cluster.ids) <- levels(integrated)
 integrated <- RenameIdents(integrated, new.cluster.ids)
-
-
 
 # Create plot
 vln1 <- VlnPlot(
@@ -966,7 +934,6 @@ vln6 <- VlnPlot(
 ) +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
 
-
 vln1$data$split <- factor(x = vln1$data$split, levels = c("d3_null", "d3_cre", "d14_null", "d14_cre"))
 vln2$data$split <- factor(x = vln2$data$split, levels = c("d3_null", "d3_cre", "d14_null", "d14_cre"))
 vln3$data$split <- factor(x = vln3$data$split, levels = c("d3_null", "d3_cre", "d14_null", "d14_cre"))
@@ -974,37 +941,31 @@ vln4$data$split <- factor(x = vln4$data$split, levels = c("d3_null", "d3_cre", "
 vln5$data$split <- factor(x = vln5$data$split, levels = c("d3_null", "d3_cre", "d14_null", "d14_cre"))
 vln6$data$split <- factor(x = vln6$data$split, levels = c("d3_null", "d3_cre", "d14_null", "d14_cre"))
 
-vln1 <- vln1 + scale_fill_nejm(labels = c("D3 WT", "D3 HIF-1a cKO", "D14 WT", "D14 HIF-1a cKO"), alpha = 0.6)
-vln2 <- vln2 + scale_fill_nejm(labels = c("D3 WT", "D3 HIF-1a cKO", "D14 WT", "D14 HIF-1a cKO"), alpha = 0.6)
-vln3 <- vln3 + scale_fill_nejm(labels = c("D3 WT", "D3 HIF-1a cKO", "D14 WT", "D14 HIF-1a cKO"), alpha = 0.6)
-vln4 <- vln4 + scale_fill_nejm(labels = c("D3 WT", "D3 HIF-1a cKO", "D14 WT", "D14 HIF-1a cKO"), alpha = 0.6)
-vln5 <- vln5 + scale_fill_nejm(labels = c("D3 WT", "D3 HIF-1a cKO", "D14 WT", "D14 HIF-1a cKO"), alpha = 0.6)
-vln6 <- vln6 + scale_fill_nejm(labels = c("D3 WT", "D3 HIF-1a cKO", "D14 WT", "D14 HIF-1a cKO"), alpha = 0.6)
-
-
+vln1 <- vln1 + scale_fill_nejm(labels = c(bquote(bolditalic(D3~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D3~Mrp8^Cre/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Cre/Hif1a^{fl/fl}))), alpha = 0.6)
+vln2 <- vln2 + scale_fill_nejm(labels = c(bquote(bolditalic(D3~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D3~Mrp8^Cre/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Cre/Hif1a^{fl/fl}))), alpha = 0.6)
+vln3 <- vln3 + scale_fill_nejm(labels = c(bquote(bolditalic(D3~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D3~Mrp8^Cre/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Cre/Hif1a^{fl/fl}))), alpha = 0.6)
+vln4 <- vln4 + scale_fill_nejm(labels = c(bquote(bolditalic(D3~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D3~Mrp8^Cre/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Cre/Hif1a^{fl/fl}))), alpha = 0.6)
+vln5 <- vln5 + scale_fill_nejm(labels = c(bquote(bolditalic(D3~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D3~Mrp8^Cre/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Cre/Hif1a^{fl/fl}))), alpha = 0.6)
+vln6 <- vln6 + scale_fill_nejm(labels = c(bquote(bolditalic(D3~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D3~Mrp8^Cre/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Cre/Hif1a^{fl/fl}))), alpha = 0.6)
 
 vln <- (vln1 | vln2 | vln3) / (vln4 | vln5 | vln6) + plot_layout(guides = "collect") & theme(legend.position = "bottom", legend.text = element_text(face = "bold", size = 12))
 
-
-
 ggsave(
-  "Figure 9B.tiff",
+  "pdf__Figure 9B.pdf",
   plot = vln,
-  device = "tiff",
-  path = here("Figure 9")
+  device = "pdf", # Will not save as an EMF!
+  units = "in",
+  width = 10,
+  height = 8,
+  path = here("Figure 9"),
+  dpi = 600
 )
-
-
 
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure 9C ----
-
 # Read in pathway data & combine
 h <- read_xlsx(here("Figure 9", "Figure 9C.xlsx"), sheet = "HM pathways")
 c2 <- read_xlsx(here("Figure 9", "Figure 9C.xlsx"), sheet = "C2 pathways")
@@ -1041,8 +1002,6 @@ heatmap2.data <- column_to_rownames(heatmap2.data, var = "pathway")
 heatmap2.data <- as.matrix(heatmap2.data)
 heatmap2.data <- heatmap2.data[rowSums(heatmap2.data) != 0, ]
 heatmap2.data <- t(heatmap2.data)
-
-
 
 row_order <- c(
   "Granulocytes 1_d3_null",
@@ -1086,16 +1045,12 @@ row_order <- c(
   "Granulocytes 8_d14_cre"
 )
 
-
-
 heatmap.data <- heatmap.data[row_order, ]
 
 col_order <- colnames(heatmap.data)
 row_order <- rownames(heatmap.data)
 
 heatmap2.data <- heatmap2.data[row_order, col_order]
-
-
 
 row_anno <- c(
   "G1",
@@ -1221,7 +1176,7 @@ col_names <- c(
   "Reactome: Neutrophil Degranulation",                                                                                        
   "Reactome: Post-Translational Protein Modification",                                                                         
   "Reactome: RAC1 GTPase Cycle",                                                                                               
-  "Reactome: Respiratory Electron Transport ATP Synthesis by Chemiosmoticc Coupling and Heat Production by Uncoupling Proteins",
+  "Reactome: ATP Synthesis by Chemiosmotic Coupling in the ETC & Heat Production by Uncoupling Proteins",
   "Reactome: Rho GTPase Effectors",                                                                                            
   "Reactome: Rho GTPases Activate NADPH Oxidases",                                                                             
   "Reactome: RhoA GTPase Cycle",                                                                                               
@@ -1241,12 +1196,50 @@ col_names <- c(
   "WP: Type II Interferon Signaling IFNg"
 )
 
-
-
 rownames(heatmap.data) <- row_names
 colnames(heatmap.data) <- col_names
 
-
+row_labels <- c(
+  "G1 D3 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G1 D3 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G1 D14 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G1 D14 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  
+  "G2 D3 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G2 D3 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G2 D14 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G2 D14 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  
+  "G3 D3 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G3 D3 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G3 D14 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G3 D14 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  
+  "G4 D3 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G4 D3 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G4 D14 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G4 D14 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  
+  "G5 D3 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G5 D3 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G5 D14 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G5 D14 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  
+  "G6 D3 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G6 D3 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G6 D14 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G6 D14 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  
+  "G7 D3 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G7 D3 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G7 D14 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G7 D14 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  
+  "G8 D3 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G8 D3 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G8 D14 *Mrp8*<sup>*Null*</sup>/*Hif1a*<sup>*fl/fl*</sup>",
+  "G8 D14 *Mrp8*<sup>*Cre*</sup>/*Hif1a*<sup>*fl/fl*</sup>"
+)
 
 # Find the NES value that is furthest from zero & use it to set heatmap scale range
 htmp_range <- c(max(heatmap.data), -min(heatmap.data))
@@ -1256,14 +1249,17 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c(-htmp_range, 0, htmp_range), c("blue", "white", "red"))
 
 # Create heatmap
-png(
-  here("Figure 9", "Figure 9C.png"),
-  width = 1600,
-  height = 1400
+devEMF::emf(
+  here("Figure 9", "emf__Figure 9C.emf"),
+  units = "in",
+  width = 20,
+  height = 15,
+  # coordDPI = 600 # Creates an invalid bitmap @ this DPI. Going with Default (300)
 )
 
 ht <- Heatmap(
   heatmap.data,
+  row_labels = gt_render(row_labels),
   name = "NES",
   col = col_fun,
   rect_gp = gpar(col = "black", lwd = 2),
@@ -1292,21 +1288,16 @@ ht <- Heatmap(
   }
 )
 
-draw(ht, padding = unit(c(165, 5, 2, 5), "mm")) # bottom, left, top, right paddings
+draw(ht, padding = unit(c(125, 5, 2, 5), "mm")) # bottom, left, top, right paddings
 
 # Close the device
 dev.off()
 
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure 10A ----
-
 # Read in pathway data & select only granulocytic data
 de <- read.csv(here("Figure 10", "Figure 10A.csv")) %>%
   filter(str_detect(cluster, "Granulocytes [:digit:]")) %>%
@@ -1324,7 +1315,6 @@ glycolysis <- HM.set %>%
 hypoxia <- unique(hypoxia$human_gene_symbol)
 glycolysis <- unique(glycolysis$human_gene_symbol)
 gene_list <- intersect(hypoxia, glycolysis)
-
 # Drop some non-informative genes
 to_drop <- c(
   "GYS1",
@@ -1359,8 +1349,6 @@ heatmap2.data <- de %>%
 heatmap2.data <- dcast(heatmap2.data, gene ~ cluster, value.var = "p_val_adj", fill = 1)
 heatmap2.data <- column_to_rownames(heatmap2.data, var = "gene")
 heatmap2.data <- as.matrix(heatmap2.data)
-
-
 
 # Set custom row order
 col_order <- c(
@@ -1401,8 +1389,6 @@ col_order <- c(
   "Granulocytes 12_tissue"
 )
 
-
-
 heatmap.data <- heatmap.data[, col_order]
 
 # Make the second heatmap match the row & column order of the first
@@ -1410,8 +1396,6 @@ col_order <- colnames(heatmap.data)
 row_order <- rownames(heatmap.data)
 
 heatmap2.data <- heatmap2.data[row_order, col_order]
-
-
 
 # Create a vector to split the heatmap according to cluster
 col_anno <- c(
@@ -1452,8 +1436,6 @@ col_anno <- c(
   "Tissue"
 )
 
-
-
 # Create new shorter rownames
 col_names <- c(
   "b_G1",
@@ -1493,11 +1475,7 @@ col_names <- c(
   "t_G12"
 )
 
-
-
 colnames(heatmap.data) <- col_names
-
-
 
 # Find the NES value that is furthest from zero & use it to set heatmap scale range
 htmp_range <- c(max(heatmap.data), -min(heatmap.data))
@@ -1507,10 +1485,12 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c(-htmp_range, 0, htmp_range), c("blue", "white", "red"))
 
 # Create heatmap
-png(
-  here("Figure 10", "Figure 10A.png"),
-  width = 800,
-  height = 600
+devEMF::emf(
+  here("Figure 10", "emf__Figure 10A.emf"),
+  units = "in",
+  width = 10,
+  height = 10,
+  coordDPI = 600
 )
 
 ht <- Heatmap(
@@ -1550,17 +1530,11 @@ draw(ht, padding = unit(c(5, 5, 2, 5), "mm")) # bottom, left, top, right padding
 # Close the device
 dev.off()
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
-## Figure 11B ----
-
+## Figure 10B ----
 # Read in pathway data & combine
 h_tissue <- read_xlsx(here("Figure 10", "Figure 10C.xlsx"), sheet = "H_tissue")
 c2_tissue <- read_xlsx(here("Figure 10", "Figure 10C.xlsx"), sheet = "C2_tissue")
@@ -1575,8 +1549,6 @@ pathways <- rbind(
   c2_blood
 )
 
-
-
 tissue_up <- pathways %>%
   filter(sample_subset == "tissue") %>%
   filter(NES > 0) %>%
@@ -1587,13 +1559,9 @@ blood_up <- pathways %>%
   filter(NES > 0) %>%
   filter(padj <= 0.05)
 
-
-
 up <- list(Tissue = tissue_up$pathway, Blood = blood_up$pathway)
 
 names(up) <- c("Tissue - Up", "Blood - Up")
-
-
 
 up <- ggvenn(
   up,
@@ -1603,7 +1571,16 @@ up <- ggvenn(
   set_name_size = 4
 )
 
-
+ggsave(
+  "pdf__Figure 10B_1.pdf",
+  plot = up,
+  device = "pdf", # Will not save as an EMF!
+  units = "in",
+  width = 8,
+  height = 8,
+  path = here("Figure 10"),
+  dpi = 600
+)
 
 tissue_dn <- pathways %>%
   filter(sample_subset == "tissue") %>%
@@ -1614,8 +1591,6 @@ blood_dn <- pathways %>%
   filter(sample_subset == "blood") %>%
   filter(NES < 0) %>%
   filter(padj <= 0.05)
-
-
 
 dn <- list(Tissue = tissue_dn$pathway, Blood = blood_dn$pathway)
 
@@ -1629,17 +1604,22 @@ dn <- ggvenn(
   set_name_size = 4
 )
 
-
+ggsave(
+  "pdf__Figure 10B_2.pdf",
+  plot = dn,
+  device = "pdf", # Will not save as an EMF!
+  units = "in",
+  width = 8,
+  height = 8,
+  path = here("Figure 10"),
+  dpi = 600
+)
 
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure 10C ----
-
 # Read in pathway data & combine
 h_tissue <- read_xlsx(here("Figure 10", "Figure 10C.xlsx"), sheet = "H_tissue")
 c2_tissue <- read_xlsx(here("Figure 10", "Figure 10C.xlsx"), sheet = "C2_tissue")
@@ -1653,8 +1633,6 @@ pathways <- rbind(
   h_blood,
   c2_blood
 )
-
-
 
 # Select only granulocytic data
 pathways <- pathways %>%
@@ -1686,8 +1664,6 @@ heatmap2.data <- column_to_rownames(heatmap2.data, var = "pathway")
 heatmap2.data <- as.matrix(heatmap2.data)
 heatmap2.data <- heatmap2.data[rowSums(heatmap2.data) != 0, ]
 heatmap2.data <- t(heatmap2.data)
-
-
 
 # Set custom row order
 row_order <- c(
@@ -1728,8 +1704,6 @@ row_order <- c(
   "Granulocytes 12_tissue"
 )
 
-
-
 heatmap.data <- heatmap.data[row_order, ]
 
 # Make the second heatmap match the row & column order of the first
@@ -1737,8 +1711,6 @@ col_order <- colnames(heatmap.data)
 row_order <- rownames(heatmap.data)
 
 heatmap2.data <- heatmap2.data[row_order, col_order]
-
-
 
 # Create a vector to split the heatmap according to cluster
 row_anno <- c(
@@ -1779,8 +1751,6 @@ row_anno <- c(
   "G12"
 )
 
-
-
 # Create new shorter rownames
 row_names <- c(
   "G1_Blood",
@@ -1819,8 +1789,6 @@ row_names <- c(
   "G12_Blood",
   "G12_Tissue"
 )
-
-
 
 # Change formatting of pathway names from the defaults
 col_names <- c(
@@ -1878,12 +1846,8 @@ col_names <- c(
   "WP: Spinal Cord Injury"    
 )
 
-
-
 rownames(heatmap.data) <- row_names
 colnames(heatmap.data) <- col_names
-
-
 
 # Find the NES value that is furthest from zero & use it to set heatmap scale range
 htmp_range <- c(max(heatmap.data), -min(heatmap.data))
@@ -1893,10 +1857,12 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c(-htmp_range, 0, htmp_range), c("blue", "white", "red"))
 
 # Create heatmap
-png(
-  here("Figure 10", "Figure 10C.png"),
-  width = 1600,
-  height = 1000
+devEMF::emf(
+  here("Figure 10", "emf__Figure 10C.emf"),
+  units = "in",
+  width = 20,
+  height = 15,
+  # coordDPI = 600 # Creates an invalid bitmap @ this DPI. Going with Default (300)
 )
 
 ht <- Heatmap(
@@ -1935,14 +1901,11 @@ draw(ht, padding = unit(c(90, 5, 2, 5), "mm")) # bottom, left, top, right paddin
 # Close the device
 dev.off()
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
-## Figure 11A ----
 
+## Figure 11A ----
 # Read in pathway data & select only granulocytic data
 c00 <- read_xlsx(here("Figure 11", "Figure 11A.xlsx"), sheet = "DE_0")
 c01 <- read_xlsx(here("Figure 11", "Figure 11A.xlsx"), sheet = "DE_1")
@@ -1999,8 +1962,6 @@ hypoxia <- unique(hypoxia$human_gene_symbol)
 glycolysis <- unique(glycolysis$human_gene_symbol)
 gene_list <- intersect(hypoxia, glycolysis)
 
-
-
 # Drop some non-informative genes
 to_drop <- c(
   "HDLBP",
@@ -2017,8 +1978,6 @@ to_drop <- c(
 
 gene_list <- setdiff(gene_list, to_drop)
 
-
-
 # Create matrix of NES values, fill with 0 if not found
 heatmap.data <- de %>%
   filter(gene %in% gene_list)
@@ -2034,8 +1993,6 @@ heatmap2.data <- dcast(heatmap2.data, gene ~ cluster, value.var = "p_val_adj", f
 heatmap2.data <- column_to_rownames(heatmap2.data, var = "gene")
 heatmap2.data <- as.matrix(heatmap2.data)
 heatmap2.data <- heatmap2.data[rowSums(heatmap2.data) != 0, ]
-
-
 
 # Set custom row order
 col_order <- c(
@@ -2087,8 +2044,6 @@ col_order <- c(
   "Granulocytes 12_s5 tissue"
 )
 
-
-
 # Make the second heatmap match the row & column order of the first
 heatmap.data <- heatmap.data[, col_order]
 
@@ -2096,8 +2051,6 @@ col_order <- colnames(heatmap.data)
 row_order <- rownames(heatmap.data)
 
 heatmap2.data <- heatmap2.data[row_order, col_order]
-
-
 
 # Create a vector to split the heatmap according to cluster
 col_anno <- c(
@@ -2149,8 +2102,6 @@ col_anno <- c(
   "Subject 5 (G+)"
 )
 
-
-
 # Create new shorter rownames
 col_names <- c(
   "s1_G1",
@@ -2201,11 +2152,7 @@ col_names <- c(
   "s5_G12"
 )
 
-
-
 colnames(heatmap.data) <- col_names
-
-
 
 # Find the NES value that is furthest from zero & use it to set heatmap scale range
 htmp_range <- c(max(heatmap.data), -min(heatmap.data))
@@ -2215,10 +2162,12 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c(-htmp_range, 0, htmp_range), c("blue", "white", "red"))
 
 # Create heatmap
-png(
-  here("Figure 11", "Figure 11A.png"),
-  width = 1200,
-  height = 600
+devEMF::emf(
+  here("Figure 11", "emf__Figure 11A.emf"),
+  units = "in",
+  width = 15,
+  height = 10,
+  coordDPI = 600 # Creates an invalid bitmap @ this DPI. Going with Default (300)
 )
 
 ht <- Heatmap(
@@ -2258,18 +2207,11 @@ draw(ht, padding = unit(c(5, 5, 2, 5), "mm")) # bottom, left, top, right padding
 # Close the device
 dev.off()
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
-
 ## Figure 11B ----
-
 # Read in pathway data & combine
 h_s1_tissue <- read_xlsx(here("Figure 11", "Figure 11C.xlsx"), sheet = "full_H_s1 tissue")
 h_s2_tissue <- read_xlsx(here("Figure 11", "Figure 11C.xlsx"), sheet = "full_H_s2 tissue")
@@ -2288,8 +2230,6 @@ pathways <- rbind(
   c2_s2_tissue,
   c2_s5_tissue
 )
-
-
 
 s1_up <- pathways %>%
   filter(sample_subset == "s1 tissue") %>%
@@ -2306,13 +2246,9 @@ s5_up <- pathways %>%
   filter(NES > 0) %>%
   filter(padj <= 0.05)
 
-
-
 up <- list(S1 = s1_up$pathway, S2 = s2_up$pathway, S5 = s5_up$pathway)
 
 names(up) <- c("S1 - Up", "S2 - Up", "S5 - Up")
-
-
 
 up <- ggvenn(
   up,
@@ -2322,7 +2258,16 @@ up <- ggvenn(
   set_name_size = 4
 )
 
-
+ggsave(
+  "pdf__Figure 11B_1.pdf",
+  plot = up,
+  device = "pdf", # Will not save as an EMF!
+  units = "in",
+  width = 8,
+  height = 8,
+  path = here("Figure 11"),
+  dpi = 600
+)
 
 s1_dn <- pathways %>%
   filter(sample_subset == "s1 tissue") %>%
@@ -2339,8 +2284,6 @@ s5_dn <- pathways %>%
   filter(NES < 0) %>%
   filter(padj <= 0.05)
 
-
-
 dn <- list(S1 = s1_dn$pathway, S2 = s2_dn$pathway, S5 = s5_dn$pathway)
 
 names(dn) <- c("S1 - Down", "S2 - Down", "S5 - Down")
@@ -2353,17 +2296,22 @@ dn <- ggvenn(
   set_name_size = 4
 )
 
-
+ggsave(
+  "pdf__Figure 11B_2.pdf",
+  plot = dn,
+  device = "pdf", # Will not save as an EMF!
+  units = "in",
+  width = 8,
+  height = 8,
+  path = here("Figure 11"),
+  dpi = 600
+)
 
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure 11C ----
-
 # Read in pathway data & combine
 h_s1_tissue <- read_xlsx(here("Figure 11", "Figure 11C.xlsx"), sheet = "full_H_s1 tissue")
 h_s2_tissue <- read_xlsx(here("Figure 11", "Figure 11C.xlsx"), sheet = "full_H_s2 tissue")
@@ -2382,8 +2330,6 @@ pathways <- rbind(
   c2_s2_tissue,
   c2_s5_tissue
 )
-
-
 
 # Select only granulocytic data
 pathways <- pathways %>%
@@ -2415,8 +2361,6 @@ heatmap2.data <- column_to_rownames(heatmap2.data, var = "pathway")
 heatmap2.data <- as.matrix(heatmap2.data)
 heatmap2.data <- heatmap2.data[rowSums(heatmap2.data) != 0, ]
 heatmap2.data <- t(heatmap2.data)
-
-
 
 # Set custom row order
 row_order <- c(
@@ -2468,8 +2412,6 @@ row_order <- c(
   "Granulocytes 12_s5 tissue"
 )
 
-
-
 heatmap.data <- heatmap.data[row_order, ]
 
 # Make the second heatmap match the row & column order of the first
@@ -2477,8 +2419,6 @@ col_order <- colnames(heatmap.data)
 row_order <- rownames(heatmap.data)
 
 heatmap2.data <- heatmap2.data[row_order, col_order]
-
-
 
 # Create a vector to split the heatmap according to cluster
 row_anno <- c(
@@ -2530,8 +2470,6 @@ row_anno <- c(
   "Subject 5 (G+)"
 )
 
-
-
 # Create new shorter rownames
 row_names <- c(
   "G1_s1 tissue",
@@ -2581,8 +2519,6 @@ row_names <- c(
   "G12_s2 tissue",
   "G12_s5 tissue"
 )
-
-
 
 # Change formatting of pathway names from the defaults
 col_names <- c(
@@ -2640,12 +2576,8 @@ col_names <- c(
  "WP: Signal Transduction Through IL-1R"   
 )
 
-
-
 rownames(heatmap.data) <- row_names
 colnames(heatmap.data) <- col_names
-
-
 
 # Find the NES value that is furthest from zero & use it to set heatmap scale range
 htmp_range <- c(max(heatmap.data), -min(heatmap.data))
@@ -2655,10 +2587,12 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c(-htmp_range, 0, htmp_range), c("blue", "white", "red"))
 
 # Create heatmap
-png(
-  here("Figure 11", "Figure 11C.png"),
-  width = 1650,
-  height = 1100
+devEMF::emf(
+  here("Figure 11", "emf__Figure 11C.emf"),
+  units = "in",
+  width = 20,
+  height = 15,
+  # coordDPI = 600 # Creates an invalid bitmap @ this DPI. Going with Default (300)
 )
 
 ht <- Heatmap(
@@ -2697,26 +2631,17 @@ draw(ht, padding = unit(c(85, 5, 2, 5), "mm")) # bottom, left, top, right paddin
 # Close the device
 dev.off()
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
-
 ## Figure S1A ----
-
-#Load in data
+# Load in data
 integrated <- readRDS(here("Figure S1", "Figure S1.rds"))
 dimred <- readRDS(here("Figure S1", "Figure S1 dim red.rds")) # Was calculated outside of the normal Seurat workflow & used for downstream analysis
 
 # Add custom dimensional reduction
 integrated[["umap"]] <- CreateDimReducObject(embeddings = dimred, key = "UMAP_", assay = DefaultAssay(integrated))
-
-
 
 # Create plot
 p <- DimPlot(
@@ -2729,13 +2654,9 @@ p <- DimPlot(
   ggtitle("") +
   theme(axis.text = element_blank(), axis.ticks = element_blank(), axis.title = element_text(size = 12, face = "bold"), legend.text = element_text(face = "bold"))
 
-
-
 p$data$Sample.ID <- factor(x = p$data$Sample.ID, levels = c("D03", "D07", "D14"))
 p <- p + scale_color_nejm(labels = c("D03", "D07", "D14"), alpha = 0.6)
 p <- p + theme(legend.position = "bottom")
-
-
 
 ggsave(
   "Figure S1A.tiff",
@@ -2744,26 +2665,17 @@ ggsave(
   path = here("Figure S1")
 )
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
-
 ## Figure S1B ----
-
 # Read in data
 integrated <- readRDS(here("Figure S1", "Figure S1.rds"))
 
 ggData = data.frame(prop.table(table(integrated$Sample.ID, Idents(integrated)), margin = 2))
 colnames(ggData) = c("Sample", "cluster", "value")
 ggData$Sample <- factor(x = ggData$Sample, levels = c("D03", "D07", "D14"))
-
-
 
 p1 <- ggplot(ggData, aes(cluster, value, fill = Sample)) +
   geom_col() +
@@ -2775,13 +2687,9 @@ p1 <- ggplot(ggData, aes(cluster, value, fill = Sample)) +
   coord_flip() +
   theme(axis.title = element_text(size = 12, face = "bold"), axis.text = element_text(face = "bold"), legend.title = element_text(face = "bold"), legend.text = element_text(face = "bold"))
 
-
-
 ggData = data.frame(table(integrated$Sample.ID, Idents(integrated)))
 colnames(ggData) = c("Sample", "cluster", "value")
 ggData$Sample <- factor(x = ggData$Sample, levels = c("D03", "D07", "D14"))
-
-
 
 p2 <- ggplot(ggData, aes(cluster, value, fill = Sample)) +
   geom_col() +
@@ -2793,8 +2701,6 @@ p2 <- ggplot(ggData, aes(cluster, value, fill = Sample)) +
   coord_flip() +
   theme(axis.title = element_text(size = 12, face = "bold"), axis.text = element_text(face = "bold"), legend.title = element_text(face = "bold"), legend.text = element_text(face = "bold"))
 
-
-
 p <- p1 / p2 + plot_layout(guides = "collect")
 
 ggsave(
@@ -2804,23 +2710,15 @@ ggsave(
   path = here("Figure S1")
 )
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure S2 ----
-
 # Load in data
 compass_results <- read.csv(here("Figure S2", "Figure S2.csv")) %>%
   group_by(subsystem) %>%
   mutate(alpha = case_when(adjusted_pval > 0.1 ~ "N", adjusted_pval <= 0.1 ~ "Y"))
-
-
 
 p <- ggplot(compass_results, aes(x = cohens_d, y = subsystem)) +
   geom_point(data = subset(compass_results, cohens_d > 0), aes(alpha = alpha), shape = 21, fill = "red", size = 2) +
@@ -2833,8 +2731,6 @@ p <- ggplot(compass_results, aes(x = cohens_d, y = subsystem)) +
   guides(alpha = guide_legend(override.aes = list(fill = "black"))) +
   theme(legend.position = "bottom")
 
-
-
 ggsave(
   "Figure S2.tiff",
   plot = p,
@@ -2842,17 +2738,11 @@ ggsave(
   path = here("Figure S2")
 )
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure S3A ----
-
 # Read in data
 d <- read.csv(here("Figure S3", "Figure S3A.csv")) %>%
   select(-1) %>%
@@ -2865,8 +2755,6 @@ p <- ggplot(d, aes(x = Seurat_patho_score, y = Seurat_maturity_score, fill = cel
   theme_classic() +
   theme(legend.position = "bottom", axis.title = element_text(size = 12, face = "bold"), axis.text = element_text(face = "bold"), legend.title = element_text(face = "bold"), legend.text = element_text(face = "bold"))
 
-
-
 ggsave(
   "Figure S3A.tiff",
   plot = p,
@@ -2874,17 +2762,11 @@ ggsave(
   path = here("Figure S3")
 )
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure S3B ----
-
 # Read in data
 cor.table <- read.csv(here("Figure S3", "Figure S3B_1.csv")) %>%
   select(-1)
@@ -2932,26 +2814,16 @@ Heatmap(
   top_annotation = ha
 )
 
-
-
 # Close the device
 dev.off()
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure S6A ----
-
-#Load in data
+# Load in data
 integrated <- readRDS(here("Figure S6", "Figure S6.rds"))
-
-
 
 # Create plot
 p <- DimPlot(
@@ -2965,14 +2837,9 @@ p <- DimPlot(
   ggtitle("") +
   theme(axis.text = element_blank(), axis.ticks = element_blank(), axis.title = element_text(size = 12, face = "bold"), legend.text = element_text(face = "bold"))
 
-
-
-
 p$data$sample_origin <- factor(x = p$data$sample_origin, levels = c("d3_null", "d3_cre", "d14_null", "d14_cre"))
-p <- p + scale_color_nejm(labels = c("D3 WT", "D3 HIF-1a cKO", "D14 WT", "D14 HIF-1a cKO"), alpha = 0.6)
+p <- p + scale_color_nejm(labels = c(bquote(bolditalic(D3~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D3~Mrp8^Cre/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Cre/Hif1a^{fl/fl}))), alpha = 0.6)
 p <- p + theme(legend.position = "bottom")
-
-
 
 ggsave(
   "Figure S6A.tiff",
@@ -2981,17 +2848,11 @@ ggsave(
   path = here("Figure S6")
 )
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure S6B ----
-
 # Read in data
 integrated <- readRDS(here("Figure S6", "Figure S6.rds"))
 
@@ -2999,39 +2860,29 @@ ggData = data.frame(prop.table(table(integrated$sample_origin, Idents(integrated
 colnames(ggData) = c("Sample", "cluster", "value")
 ggData$Sample <- factor(x = ggData$Sample, levels = c("d3_null", "d3_cre", "d14_null", "d14_cre"))
 
-
-
 p1 <- ggplot(ggData, aes(cluster, value, fill = Sample)) +
   geom_col() +
   xlab("Cluster") +
   ylab("Proportion of Cells (%)") +
-  scale_fill_nejm(labels = c("D3 WT", "D3 HIF-1a cKO", "D14 WT", "D14 HIF-1a cKO"), alpha = 0.6) +
+  scale_fill_nejm(labels = c(bquote(bolditalic(D3~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D3~Mrp8^Cre/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Cre/Hif1a^{fl/fl}))), alpha = 0.6) +
   scale_y_continuous(expand = c(0, 0)) +
   theme_classic() +
   coord_flip() +
   theme(axis.title = element_text(size = 12, face = "bold"), axis.text = element_text(face = "bold"), legend.title = element_text(face = "bold"), legend.text = element_text(face = "bold"))
-
-
-
 
 ggData = data.frame(table(integrated$sample_origin, Idents(integrated)))
 colnames(ggData) = c("Sample", "cluster", "value")
 ggData$Sample <- factor(x = ggData$Sample, levels = c("d3_null", "d3_cre", "d14_null", "d14_cre"))
 
-
-
 p2 <- ggplot(ggData, aes(cluster, value, fill = Sample)) +
   geom_col() +
   xlab("Cluster") +
   ylab("Cell Number") +
-  scale_fill_nejm(labels = c("D3 WT", "D3 HIF-1a cKO", "D14 WT", "D14 HIF-1a cKO"), alpha = 0.6) +
+  scale_fill_nejm(labels = c(bquote(bolditalic(D3~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D3~Mrp8^Cre/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Null/Hif1a^{fl/fl})), bquote(bolditalic(D14~Mrp8^Cre/Hif1a^{fl/fl}))), alpha = 0.6) +
   scale_y_continuous(expand = c(0, 0)) +
   theme_classic() +
   coord_flip() +
   theme(axis.title = element_text(size = 12, face = "bold"), axis.text = element_text(face = "bold"), legend.title = element_text(face = "bold"), legend.text = element_text(face = "bold"))
-
-
-
 
 p <- p1 / p2 + plot_layout(guides = "collect")
 
@@ -3042,18 +2893,12 @@ ggsave(
   path = here("Figure S6")
 )
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure S7A ----
-
-#Load in data, normalize, scale, & subset
+# Load in data, normalize, scale, & subset
 integrated <- readRDS(here("Figure S7", "Figure S7.rds"))
 DefaultAssay(integrated) <- "RNA"
 integrated <- NormalizeData(integrated)
@@ -3076,8 +2921,6 @@ new.cluster.ids <- c(
 names(new.cluster.ids) <- levels(integrated)
 integrated <- RenameIdents(integrated, new.cluster.ids)
 
-
-
 # Create plot
 vln1 <- VlnPlot(
   integrated,
@@ -3095,19 +2938,13 @@ vln2 <- VlnPlot(
   idents = c("G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9")
 )
 
-
-
 vln1$data$split <- factor(x = vln1$data$split, levels = c("d3_null", "d3_cre", "d14_null", "d14_cre"))
 vln2$data$split <- factor(x = vln2$data$split, levels = c("d3_null", "d3_cre", "d14_null", "d14_cre"))
 
 vln1 <- vln1 + scale_fill_nejm(labels = c("D3 WT", "D3 HIF-1a cKO", "D14 WT", "D14 HIF-1a cKO"), alpha = 0.6)
 vln2 <- vln2 + scale_fill_nejm(labels = c("D3 WT", "D3 HIF-1a cKO", "D14 WT", "D14 HIF-1a cKO"), alpha = 0.6)
 
-
-
 vln <- (vln1 / vln2) + plot_layout(guides = "collect") & theme(legend.position = "bottom")
-
-
 
 ggsave(
   "Figure S7A.tiff",
@@ -3116,18 +2953,12 @@ ggsave(
   path = here("Figure S7")
 )
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure S7B ----
-
-#Load in data
+# Load in data
 integrated <- readRDS(here("Figure S7", "Figure S7.rds"))
 DefaultAssay(integrated) <- "RNA"
 integrated <- NormalizeData(integrated)
@@ -3153,8 +2984,6 @@ avg <- AverageExpression(integrated, return.seurat = TRUE)
 avg.norm_counts <- avg@assays$RNA@data
 avg.norm_counts <- as.data.frame(avg.norm_counts)
 avg.norm_counts <- rownames_to_column(avg.norm_counts, var = "gene")
-
-
 
 # Filter averaged normalized counts for genes of interest & convert back into a matrix
 gene_list <- c(
@@ -3182,21 +3011,15 @@ gene_list <- c(
   "Cd177"
 )
 
-
-
 heatmap.data <- avg.norm_counts %>%
   filter(gene %in% gene_list)
 heatmap.data <- column_to_rownames(heatmap.data, var = "gene")
 heatmap.data <- as.matrix(heatmap.data)
 
-
-
 ## Create vectors for column/row annotations
 row_order <- gene_list
 
 heatmap.data <- heatmap.data[row_order, ]
-
-
 
 row_anno <- c(
   "G-MDSC genes",
@@ -3223,8 +3046,6 @@ row_anno <- c(
   "PMN genes",
   "PMN genes"
 )
-
-
 
 # Find the NES value that is furthest from zero & use it to set heatmap scale range
 htmp_range <- c(max(heatmap.data), -min(heatmap.data))
@@ -3268,17 +3089,11 @@ draw(ht, padding = unit(c(5, 5, 2, 5), "mm")) # bottom, left, top, right padding
 # Close the device
 dev.off()
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure S8 ----
-
 # Load in data
 compass_results <- read.csv(here("Figure S8", "Figure S8_1.csv"))
 
@@ -3305,8 +3120,8 @@ p <- ggplot(compass_results, aes(x = cohens_d, y = -log10(adjusted_pval))) +
   geom_point(shape = 21, fill = "gray", size = 3) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
-  annotate("text", x = 2.75, y = 2, label = "WT") +
-  annotate("text", x = -2.75, y = 2, label = "Hif1a cKO") +
+  annotate("text", x = 2.75, y = 3.50, label = bquote(atop(bolditalic(Mrp8^Null), bolditalic(Hif1a^{fl/fl})))) +
+  annotate("text", x = -2.75, y = 3.50, label = bquote(atop(bolditalic(Mrp8^Cre), bolditalic(Hif1a^{fl/fl})))) +
   xlim(c(-3, 3)) +
   ylim(c(0, 30)) +
   xlab("Cohen's D") +
@@ -3318,8 +3133,8 @@ p1 <- ggplot(compass_results %>% filter(subsystem =="Glycolysis/gluconeogenesis"
   geom_point(shape = 21, fill = "#BC3C29FF", size = 3) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_hline(yintercept = 1.3, linetype = "dashed") +
-  annotate("text", x = 2, y = 3, label = "WT") +
-  annotate("text", x = -2, y = 3, label = "Hif1a cKO") +
+  annotate("text", x = 2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Null), bolditalic(Hif1a^{fl/fl})))) +
+  annotate("text", x = -2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Cre), bolditalic(Hif1a^{fl/fl})))) +
   xlim(c(-3, 3)) +
   ylim(c(0, 30)) +
   xlab("Cohen's D") +
@@ -3335,8 +3150,8 @@ p2 <- ggplot(compass_results %>% filter(subsystem =="Citric acid cycle"), aes(x 
   geom_point(shape = 21, fill = "#0072B5FF", size = 3) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_hline(yintercept = 1.3, linetype = "dashed") +
-  annotate("text", x = 2, y = 3, label = "WT") +
-  annotate("text", x = -2, y = 3, label = "Hif1a cKO") +
+  annotate("text", x = 2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Null), bolditalic(Hif1a^{fl/fl})))) +
+  annotate("text", x = -2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Cre), bolditalic(Hif1a^{fl/fl})))) +
   xlim(c(-3, 3)) +
   ylim(c(0, 30)) +
   xlab("Cohen's D") +
@@ -3352,8 +3167,8 @@ p3 <- ggplot(compass_results %>% filter(subsystem %in% aam), aes(x = cohens_d, y
   geom_point(shape = 21, fill = "#E18727FF", size = 3) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_hline(yintercept = 1.3, linetype = "dashed") +
-  annotate("text", x = 2, y = 3, label = "WT") +
-  annotate("text", x = -2, y = 3, label = "Hif1a cKO") +
+  annotate("text", x = 2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Null), bolditalic(Hif1a^{fl/fl})))) +
+  annotate("text", x = -2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Cre), bolditalic(Hif1a^{fl/fl})))) +
   xlim(c(-3, 3)) +
   ylim(c(0, 30)) +
   xlab("Cohen's D") +
@@ -3369,8 +3184,8 @@ p4 <- ggplot(compass_results %>% filter(subsystem =="Fatty acid oxidation"), aes
   geom_point(shape = 21, fill = "#20854EFF", size = 3) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_hline(yintercept = 1.3, linetype = "dashed") +
-  annotate("text", x = 2, y = 3, label = "WT") +
-  annotate("text", x = -2, y = 3, label = "Hif1a cKO") +
+  annotate("text", x = 2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Null), bolditalic(Hif1a^{fl/fl})))) +
+  annotate("text", x = -2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Cre), bolditalic(Hif1a^{fl/fl})))) +
   xlim(c(-3, 3)) +
   ylim(c(0, 30)) +
   xlab("Cohen's d") +
@@ -3399,11 +3214,7 @@ p5 <- annotate_figure(
   left = textGrob(bquote(-log[10](BH-adjusted~Wilcoxon~rank~sum~p)), rot = 90, vjust = 0.5, gp = gpar(cex = 1.3)),
   bottom = textGrob("Cohen's D", gp = gpar(cex = 1.3)))
 
-
-
 d3 <- p | figure
-
-
 
 # Load in data
 compass_results <- read.csv(here("Figure S8", "Figure S8_2.csv"))
@@ -3431,8 +3242,8 @@ p <- ggplot(compass_results, aes(x = cohens_d, y = -log10(adjusted_pval))) +
   geom_point(shape = 21, fill = "gray", size = 3) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
-  annotate("text", x = 2.75, y = 2, label = "WT") +
-  annotate("text", x = -2.75, y = 2, label = "Hif1a cKO") +
+  annotate("text", x = 2.75, y = 3.50, label = bquote(atop(bolditalic(Mrp8^Null), bolditalic(Hif1a^{fl/fl})))) +
+  annotate("text", x = -2.75, y = 3.50, label = bquote(atop(bolditalic(Mrp8^Cre), bolditalic(Hif1a^{fl/fl})))) +
   xlim(c(-3, 3)) +
   ylim(c(0, 30)) +
   xlab("Cohen's D") +
@@ -3444,8 +3255,8 @@ p1 <- ggplot(compass_results %>% filter(subsystem =="Glycolysis/gluconeogenesis"
   geom_point(shape = 21, fill = "#BC3C29FF", size = 3) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_hline(yintercept = 1.3, linetype = "dashed") +
-  annotate("text", x = 2, y = 3, label = "WT") +
-  annotate("text", x = -2, y = 3, label = "Hif1a cKO") +
+  annotate("text", x = 2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Null), bolditalic(Hif1a^{fl/fl})))) +
+  annotate("text", x = -2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Cre), bolditalic(Hif1a^{fl/fl})))) +
   xlim(c(-3, 3)) +
   ylim(c(0, 30)) +
   xlab("Cohen's D") +
@@ -3461,8 +3272,8 @@ p2 <- ggplot(compass_results %>% filter(subsystem =="Citric acid cycle"), aes(x 
   geom_point(shape = 21, fill = "#0072B5FF", size = 3) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_hline(yintercept = 1.3, linetype = "dashed") +
-  annotate("text", x = 2, y = 3, label = "WT") +
-  annotate("text", x = -2, y = 3, label = "Hif1a cKO") +
+  annotate("text", x = 2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Null), bolditalic(Hif1a^{fl/fl})))) +
+  annotate("text", x = -2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Cre), bolditalic(Hif1a^{fl/fl})))) +
   xlim(c(-3, 3)) +
   ylim(c(0, 30)) +
   xlab("Cohen's D") +
@@ -3478,8 +3289,8 @@ p3 <- ggplot(compass_results %>% filter(subsystem %in% aam), aes(x = cohens_d, y
   geom_point(shape = 21, fill = "#E18727FF", size = 3) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_hline(yintercept = 1.3, linetype = "dashed") +
-  annotate("text", x = 2, y = 3, label = "WT") +
-  annotate("text", x = -2, y = 3, label = "Hif1a cKO") +
+  annotate("text", x = 2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Null), bolditalic(Hif1a^{fl/fl})))) +
+  annotate("text", x = -2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Cre), bolditalic(Hif1a^{fl/fl})))) +
   xlim(c(-3, 3)) +
   ylim(c(0, 30)) +
   xlab("Cohen's D") +
@@ -3495,8 +3306,8 @@ p4 <- ggplot(compass_results %>% filter(subsystem =="Fatty acid oxidation"), aes
   geom_point(shape = 21, fill = "#20854EFF", size = 3) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_hline(yintercept = 1.3, linetype = "dashed") +
-  annotate("text", x = 2, y = 3, label = "WT") +
-  annotate("text", x = -2, y = 3, label = "Hif1a cKO") +
+  annotate("text", x = 2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Null), bolditalic(Hif1a^{fl/fl})))) +
+  annotate("text", x = -2.25, y = 6.00, label = bquote(atop(bolditalic(Mrp8^Cre), bolditalic(Hif1a^{fl/fl})))) +
   xlim(c(-3, 3)) +
   ylim(c(0, 30)) +
   xlab("Cohen's D") +
@@ -3525,11 +3336,7 @@ p5 <- annotate_figure(
   left = textGrob(bquote(-log[10](BH-adjusted~Wilcoxon~rank~sum~p)), rot = 90, vjust = 0.5, gp = gpar(cex = 1.3)),
   bottom = textGrob("Cohen's D", gp = gpar(cex = 1.3)))
 
-
-
 d14 <- p | figure
-
-
 
 final <- d3 / d14
 
@@ -3545,23 +3352,15 @@ ggsave(
   units = "in"
 )
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure S9 ----
-
 # Load in data
 compass_results <- read.csv(here("Figure S9", "Figure S9.csv")) %>%
   group_by(subsystem) %>%
   mutate(alpha = case_when(adjusted_pval > 0.1 ~ "N", adjusted_pval <= 0.1 ~ "Y"))
-
-
 
 p <- ggplot(compass_results, aes(x = cohens_d, y = subsystem)) +
   geom_point(data = subset(compass_results, cohens_d > 0), aes(alpha = alpha), shape = 21, fill = "red", size = 2) +
@@ -3573,8 +3372,6 @@ p <- ggplot(compass_results, aes(x = cohens_d, y = subsystem)) +
   scale_alpha_manual(name = "", labels = c("NS", bquote(p[adj]<=~0.1)), values = c(0.25, 1.00)) +
   guides(alpha = guide_legend(override.aes = list(fill = "black"))) +
   theme(legend.position = "bottom")
-
-
 
 ggsave(
   "Figure S9.tiff",
@@ -3583,23 +3380,15 @@ ggsave(
   path = here("Figure S9")
 )
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure S10 ----
-
 # Load in data
 compass_results <- read.csv(here("Figure S10", "Figure S10.csv")) %>%
   group_by(subsystem) %>%
   mutate(alpha = case_when(adjusted_pval > 0.1 ~ "N", adjusted_pval <= 0.1 ~ "Y"))
-
-
 
 p <- ggplot(compass_results, aes(x = cohens_d, y = subsystem)) +
   geom_point(data = subset(compass_results, cohens_d > 0), aes(alpha = alpha), shape = 21, fill = "red", size = 2) +
@@ -3612,8 +3401,6 @@ p <- ggplot(compass_results, aes(x = cohens_d, y = subsystem)) +
   guides(alpha = guide_legend(override.aes = list(fill = "black"))) +
   theme(legend.position = "bottom")
 
-
-
 ggsave(
   "Figure S10.tiff",
   plot = p,
@@ -3621,21 +3408,13 @@ ggsave(
   path = here("Figure S10")
 )
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure S11A ----
-
-#Load in data
+# Load in data
 integrated <- readRDS(here("Figure S10", "Figure S11.rds"))
-
-
 
 # Create plot
 p <- DimPlot(
@@ -3650,12 +3429,7 @@ p <- DimPlot(
   labs(x = "UMAP 1", y = "UMAP 2") +
   theme(axis.text = element_blank(), axis.ticks = element_blank(), axis.title = element_text(size = 12, face = "bold"), legend.text = element_text(face = "bold"))
 
-
-
-
 p <- p + theme(legend.position = "bottom")
-
-
 
 ggsave(
   "Figure S10A.tiff",
@@ -3664,21 +3438,13 @@ ggsave(
   path = here("Figure S10")
 )
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure S11B ----
-
-#Load in data
+# Load in data
 integrated <- readRDS(here("Figure S10", "Figure S11.rds"))
-
-
 
 # Create plot
 p <- DimPlot(
@@ -3690,9 +3456,6 @@ p <- DimPlot(
   labs(x = "UMAP 1", y = "UMAP 2") +
   ggtitle("") +
   theme(axis.text = element_blank(), axis.ticks = element_blank(), axis.title = element_text(size = 12, face = "bold"), legend.text = element_text(face = "bold"))
-
-
-
 
 p$data$sample_origin <- factor(x = p$data$Sample_origin, levels = c("s1 blood", "s1 tissue", "s2 blood", "s2 tissue", "s5 blood", "s5 tissue"))
 p <- p + scale_color_nejm(labels = c(
@@ -3708,8 +3471,6 @@ alpha = 0.6
 
 p <- p + theme(legend.position = "bottom")
 
-
-
 ggsave(
   "Figure S10B.tiff",
   plot = p,
@@ -3717,25 +3478,17 @@ ggsave(
   path = here("Figure S10")
 )
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
 
-
-
 ## Figure S11C ----
-
 # Read in data
 integrated <- readRDS(here("Figure S10", "Figure S11.rds"))
 
 ggData = data.frame(prop.table(table(integrated$Sample_origin, Idents(integrated)), margin = 2))
 colnames(ggData) = c("Sample", "cluster", "value")
 ggData$Sample <- factor(x = ggData$Sample, levels = c("s1 blood", "s1 tissue", "s2 blood", "s2 tissue", "s5 blood", "s5 tissue"))
-
-
 
 p1 <- ggplot(ggData, aes(cluster, value, fill = Sample)) +
   geom_col() +
@@ -3747,14 +3500,9 @@ p1 <- ggplot(ggData, aes(cluster, value, fill = Sample)) +
   coord_flip() +
   theme(axis.title = element_text(size = 12, face = "bold"), axis.text = element_text(face = "bold"), legend.title = element_text(face = "bold"), legend.text = element_text(face = "bold"))
 
-
-
-
 ggData = data.frame(table(integrated$Sample_origin, Idents(integrated)))
 colnames(ggData) = c("Sample", "cluster", "value")
 ggData$Sample <- factor(x = ggData$Sample, levels = c("s1 blood", "s1 tissue", "s2 blood", "s2 tissue", "s5 blood", "s5 tissue"))
-
-
 
 p2 <- ggplot(ggData, aes(cluster, value, fill = Sample)) +
   geom_col() +
@@ -3766,9 +3514,6 @@ p2 <- ggplot(ggData, aes(cluster, value, fill = Sample)) +
   coord_flip() +
   theme(axis.title = element_text(size = 12, face = "bold"), axis.text = element_text(face = "bold"), legend.title = element_text(face = "bold"), legend.text = element_text(face = "bold"))
 
-
-
-
 p <- p1 / p2 + plot_layout(guides = "collect")
 
 ggsave(
@@ -3778,11 +3523,6 @@ ggsave(
   path = here("Figure S10")
 )
 
-
-
 # Clear the environment
 rm(list = ls())
-
 gc()
-
-
