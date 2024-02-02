@@ -16,16 +16,10 @@ rm(packages)
 options(future.globals.maxSize = 4000 * 1024^5)
 set.seed(12345)
 
-
-
 plan('multicore')
-
-
 
 ## Bring in objects
 brain.integrated <- readRDS('/work/kielianlab/cmhorn/ortho.integrated.rds')
-
-
 
 ## Differential expression analysis
 DefaultAssay(brain.integrated) <- 'RNA'
@@ -43,8 +37,6 @@ for (i in seq_along(levels(DE$cluster))) {
   }
 }
 
-
-
 rm(
   i,
   single.DE,
@@ -52,8 +44,6 @@ rm(
 )
 
 gc()
-
-
 
 ## Within cluster DE Analysis
 c00 <- subset(cellplex.integrated, idents = c('Granulocytes 1'))
@@ -73,7 +63,6 @@ c13 <- subset(cellplex.integrated, idents = c('C13'))
 c14 <- subset(cellplex.integrated, idents = c('Granulocytes 11'))
 c15 <- subset(cellplex.integrated, idents = c('NK/T Cells'))
 c16 <- subset(cellplex.integrated, idents = c('Granulocytes 12'))
-
 
 c.list <- list(
   c00,
@@ -95,8 +84,6 @@ c.list <- list(
   c16
 )
 
-
-
 rm(
   c01,
   c02,
@@ -118,8 +105,6 @@ rm(
 
 gc()
 
-
-
 for(i in 1:length(c.list)){
   DefaultAssay(c.list[[i]]) <- 'RNA'
   c.list[[i]] <- NormalizeData(c.list[[i]], verbose = TRUE)
@@ -136,8 +121,6 @@ for(i in 1:length(c.list)){
   write.csv(DE, paste0('/work/kielianlab/cmhorn/output/DE/within_cluster/DE_', i-1, '.csv'))
 }
 
-
-
 rm(
   i,
   c.list,
@@ -145,14 +128,3 @@ rm(
 )
 
 gc()
-
-
-
-
-
-
-
-
-
-
-

@@ -4,11 +4,7 @@
 ## Created: 2020-05-12
 ## Updated: 2022-02-03
 
-
-
-
 # Setting up environment -----
-
 ## Load in packages
 packages <- c('tidyverse',
               'Seurat',
@@ -43,10 +39,7 @@ rm(packages)
 options(future.globals.maxSize = 4000 * 1024^2)
 set.seed(12345)
 
-
-
 # Initializing objects -----
-
 ## Setting up Seurat objects
 ## Load in the data
 d3.data <- Read10X(data.dir = here('D3', 'Data'))
@@ -87,10 +80,7 @@ rm(d3.data,
 
 gc()
 
-
-
 # Annotating cell types -----
-
 ## Annotate the cells w/SingleR
 immgen.se <- ImmGenData()
 
@@ -130,10 +120,7 @@ rm(immgen.se,
 
 gc()
 
-
-
 # Object integration -----
-
 ## Integrating all cells from all days
 ortho.list <- c(d3.ortho, d7.ortho, d14.ortho)
 names(ortho.list) <- c('D03', 'D07', 'D14')
@@ -147,8 +134,6 @@ ortho.integrated <- RunUMAP(ortho.integrated, dims = 1:30)
 ortho.integrated <- FindNeighbors(ortho.integrated, dims = 1:30)
 ortho.integrated <- FindClusters(ortho.integrated, resolution = 0.5)
 
-
-
 ## Output celltype composition of each cluster
 for (i in seq_along(levels(ortho.integrated@meta.data$seurat_clusters))) {
   if(i != length(ortho.integrated@meta.data$seurat_clusters)) {
@@ -161,8 +146,6 @@ rm(i,
    ii)
 
 gc()
-
-
 
 ## Plotting
 ortho.int_pca.time <- DimPlot(ortho.integrated, split.by = 'Sample.ID', reduction = 'pca') +
@@ -198,14 +181,9 @@ rm(ortho.list,
 
 gc()
 
-
-
 write.csv(ortho.integrated@meta.data, here('Integrated', 'ortho.int_metadata.csv'))
 
-
-
 # Renaming/plotting -----
-
 ## Renaming clusters
 # new.cluster.ids <- c('Granulocytes I', 'Granulocytes II', 'Granulocytes III', 'Granulocytes IV', 'Granulocytes V', 'Granulocytes VI', 'Granulocytes VII', '7', 'Granulocytes VIII', 'Granulocytes IX', 'Granulocytes X', '11') # Preparing new cluster labels
 new.cluster.ids <- c('G1',
@@ -249,8 +227,6 @@ ortho.int_umap.clus <- DimPlot(ortho.integrated) +
   labs(x = 'UMAP 1', y = 'UMAP 2') +
   theme(axis.text = element_blank(), axis.ticks = element_blank())
 
-
-
 ## Subsetting out the granulocytes
 # neutro.integrated <- subset(ortho.integrated, idents = c('Granulocytes I', 'Granulocytes II', 'Granulocytes III', 'Granulocytes IV', 'Granulocytes V', 'Granulocytes VI', 'Granulocytes VII', 'Granulocytes VIII', 'Granulocytes IX', 'Granulocytes X'))
 neutro.integrated <- subset(ortho.integrated, idents = c('G1',
@@ -265,7 +241,6 @@ neutro.integrated <- subset(ortho.integrated, idents = c('G1',
                                                          'G10'))
 
 
-
 ## Output number of cells from each Sample.ID in each cluster
 gran_clust.comp <- table(Idents(neutro.integrated), neutro.integrated$Sample.ID) # easier way
 
@@ -275,12 +250,8 @@ rm(gran_clust.comp)
 
 gc()
 
-
-
 # Trajectory Analysis -----
-
 # Finding trajectories =====
-
 ## Inferring trajectories
 object_counts <- Matrix::t(as(as.matrix(neutro.integrated@assays$RNA@counts), 'sparseMatrix'))
 object_expression <- Matrix::t(as(as.matrix(neutro.integrated@assays$RNA@data), 'sparseMatrix'))
@@ -289,7 +260,10 @@ neutro.integrated_dyn <- wrap_expression(
   expression = object_expression
 )
 
-rm(object_counts, object_expression)
+rm(
+  object_counts,
+  object_expression
+)
 
 ## Add a dimensionality reduction
 neutro.integrated_dimred <- dyndimred::dimred_umap(neutro.integrated_dyn$expression)
@@ -339,12 +313,8 @@ simp_lab <- simp %>% label_milestones(c('1' = 'Stuck',
                                         '4' = 'Mature',
                                         '5' = 'Immature'))
 
-
-
 # Plotting gene expression over pseudotime =====
-
 # Slingshot #####
-
 ## Get trajectory & clustering information for lineage acquisition (pseudotime)
 expression <- Matrix::t(as(as.matrix(neutro.integrated@assays$RNA@data), 'sparseMatrix'))
 ndim <- 20L
@@ -397,8 +367,6 @@ rm(ndim,
 
 gc()
 
-
-
 ## Find trajectory
 lineages <- getLineages(dimred, labels, start.clus = '4')
 sling <- getCurves(lineages,
@@ -415,10 +383,7 @@ rm(dimred, labels, lineages)
 
 gc()
 
-
-
 # TradeSeq #####
-
 ## Find optimal number of knots to use for GAM fitting
 counts <- neutro.integrated@assays$RNA@counts
 filt <- rowSums(counts > 1) >= 120 # Filtering transcripts (genes w/count of at least two in at least 120 different cells)
@@ -470,7 +435,10 @@ endRes.comp <- endRes[, c('Gene', 'end')]
 compare <- merge(patternRes.comp, endRes.comp, by = 'Gene', all = F)
 compare$transientScore <- rank(-compare$end, ties.method = 'min')^2 + rank(compare$pattern, ties.method = 'random')^2
 
-rm(patternRes.comp, endRes.comp)
+rm(
+  patternRes.comp,
+  endRes.comp
+)
 
 ## Plotting
 ## Expression vs Pseudotime
@@ -504,8 +472,10 @@ for (i in seq_along(unique(Gene.Cluster$cluster))) {
   }
 }
 
-rm(clust,
-   i)
+rm(
+  clust,
+  i
+)
 
 gc()
 
@@ -544,10 +514,7 @@ rm(geneId,
 
 gc()
 
-
-
 # TradeSeq GSEA #####
-
 ## fgsea
 geneSets <- msigdbr(species = 'Mus musculus', category = 'C5', subcategory = 'BP') # GO:BP
 # geneSets <- msigdbr(species = 'Mus musculus', category = 'C2', subcategory = 'CP:KEGG') # KEGG
@@ -576,10 +543,7 @@ rm(geneSets,
 
 gc()
 
-
-
 # Cluster-level DE -----
-
 ## Gene DE Analysis
 DefaultAssay(neutro.integrated) <- 'RNA'
 neutro.integrated <- NormalizeData(neutro.integrated, verbose = T) # Counts are normalized by dividing the counts for a given feature by the total counts per cell, multiplying by a scale factor (default == 10,000), and then taking the natural log using log1p()
@@ -594,12 +558,12 @@ for (i in seq_along(levels(neutro.filtered$cluster))) {
   }
 }
 
-rm(DE,
-   i)
+rm(
+  DE,
+  i
+)
 
 gc()
-
-
 
 markers.define <- subset(neutro.markers, avg_logFC > 1 & p_val_adj < 0.05)$gene
 
@@ -610,8 +574,10 @@ for (i in seq_along(levels(neutro.markers$cluster))) {
   }
 }
 
-rm(DE,
-   i)
+rm(
+  DE,
+  i
+)
 
 gc()
 
@@ -668,13 +634,13 @@ for(i in 1:length(g.list)){
   write.csv(DE, here('Integrated', 'DE', 'within cluster', paste0('gran_', i, '.csv')))
 }
 
-rm(i,
-   g.list,
-   DE)
+rm(
+  i,
+  g.list,
+  DE
+)
 
 gc()
-
-
 
 ## fgsea
 # geneSets <- msigdbr(species = 'Mus musculus', category = 'C5', subcategory = 'BP') # GO:BP
@@ -709,8 +675,6 @@ rm(geneSets,
 
 gc()
 
-
-
 ## Performing GSEA on average normalized counts
 GO.set <- msigdbr(species = 'Mus musculus', category = 'C5', subcategory = 'BP') # GO:BP
 HM.set <- msigdbr(species = 'Mus musculus', category = 'H') # Hallmark
@@ -744,10 +708,7 @@ rm(geneSet_list,
    ii,
    neutro.avg_data)
 
-
-
 # Single-cell GSEA ------
-
 GS <- getGeneSets(library = 'H', species = 'Mus musculus')
 # GS <- getGeneSets(library = 'C5', species = 'Mus musculus')
 ES <- enrichIt(neutro.integrated, gene.sets = GS, groups = 1000, cores = 2)
@@ -775,13 +736,9 @@ multi_dittoPlot(neutro.integrated, vars = c('HALLMARK_APOPTOSIS',
                 theme = theme_classic() +
                   theme(plot.title = element_text(size = 10)))
 
-
-
 ES2 <- data.frame(neutro.integrated[[]], Idents(neutro.integrated))
 colnames(ES2)[ncol(ES2)] <- 'cluster'
 ridgeEnrichment(ES2, gene.set = 'HALLMARK_HYPOXIA', group = 'seurat_clusters', add.rug = TRUE) # Add 'facet = 'Sample.ID'' to split by day
-
-
 
 PCA <- performPCA(enriched = ES2, groups = c('seurat_clusters', 'Sample.ID'))
 pcaEnrichment(PCA, PCx = 'PC1', PCy = 'PC2', contours = TRUE)
@@ -789,10 +746,7 @@ pcaEnrichment(PCA, PCx = 'PC1', PCy = 'PC2', contours = FALSE, facet = 'seurat_c
 
 output <- getSignificance(ES2, group = 'seurat_clusters', fit = 'ANOVA') # Can use linear.model, T.test, or ANOVA
 
-
-
 # Complex Heatmap ------
-
 ## Average single cell data & pull out normalized counts
 ## Counts are normalized by dividing the counts for a given feature by the total counts per cell, multiplying by a scale factor (default == 10,000), and then taking the natural log using log1p()
 neutro.avg <- AverageExpression(neutro.integrated, return.seurat = T)
@@ -813,6 +767,7 @@ gene_list <- c('Gpi1',
                'Pgd',
                'Tkt',
                'Taldo1')
+
 heatmap.data <- avg.norm_counts %>%
   filter(gene %in% gene_list)
 heatmap.data <- column_to_rownames(heatmap.data, var = 'gene')
@@ -829,6 +784,7 @@ mdsc_pmn <- c('MDSC',
               'PMN',
               'PMN',
               'PMN')
+
 gene_anno <- c('PPP',
                'Glycolysis',
                'PPP',
@@ -863,29 +819,8 @@ ComplexHeatmap::Heatmap(heatmap.data,
                         })
 
 
-# Notes -----
-
-# If you'd like to do everything in three dimensions, use RumUMAP(object, dims = 1:n, n.components = 3L). Bringing this into
-# Slingshot requires you to create objects that contain the cell embeddings (object@reductions$umap@cell.embeddings) & the
-# clustering info (object@active.iden (or any grouping you desire)). You can then supply these to slingshot as you normally
-# would. If you would like to visualize, you could do the following (requires rgl package):
-
-# gg_color_hue <- function(n) {
-#   hues = seq(15, 375, length = n + 1)
-#   hcl(h = hues, l = 65, c = 100)[1:n]
-# }
-# plot3d.SlingshotDataSet(sds)
-# plot3d(rd, col = gg_color_hue(10)[cl], aspect = 'iso', add = T)
-
-
-# I'm not sure if using three dimensions has any clear benefit over using two, but it may.
-
-
-
-# Test area -----
-
+# Helper functions -----
 ## Monocle trajectories
-
 cds <- as.cell_data_set(neutro.integrated)
 cds <- cluster_cells(cds)
 p1 <- plot_cells(cds, show_trajectory_graph = FALSE)
@@ -906,6 +841,3 @@ plot_cells(cds, color_cells_by = "pseudotime", label_cell_groups = FALSE, label_
 # Set the assay back as 'integrated'
 integrated.sub <- as.Seurat(cds, assay = "integrated")
 FeaturePlot(integrated.sub, "monocle3_pseudotime")
-
-
-

@@ -5,11 +5,7 @@
 
 ## Notes: Integrating patient data from three subjects: Subject 1, Subject 2, & Subject 5
 
-
-
-
 # Setting up environment -----
-
 ## Load in packages
 packages <- c(
   'tidyverse',
@@ -47,8 +43,6 @@ rm(
 options(future.globals.maxSize = 4000 * 1024^2)
 set.seed(12345)
 
-
-
 # Initializing objects -----
 
 ## Setting up Seurat objects
@@ -67,8 +61,6 @@ s5.blood.data <- s5.blood.data$`Gene Expression`
 s5.tissue.data <- Read10X(data.dir = here('raw_data', 'subject_5', 'tissue'))
 s5.tissue.data <- s5.tissue.data$`Gene Expression`
 
-
-
 ## Initialize Seurat object w/raw data
 # Subject 1
 s1.blood <- CreateSeuratObject(counts = s1.blood.data, project = 's1 blood', min.cells = 3, min.features = 200)
@@ -81,8 +73,6 @@ s2.tissue <- CreateSeuratObject(counts = s2.tissue.data, project = 's2 tissue', 
 # Subject 5
 s5.blood <- CreateSeuratObject(counts = s5.blood.data, project = 's5 blood', min.cells = 3, min.features = 200)
 s5.tissue <- CreateSeuratObject(counts = s5.tissue.data, project = 's5 tissue', min.cells = 3, min.features = 200)
-
-
 
 ## Pre-processing and QC
 # Subject 1
@@ -105,8 +95,6 @@ s5.blood <- subset(s5.blood, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 &
 
 s5.tissue[['percent.mt']] <- PercentageFeatureSet(s5.tissue, pattern = '^MT-')
 s5.tissue <- subset(s5.tissue, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
-
-
 
 ## Create timing metadata
 # Subject 1
@@ -133,8 +121,6 @@ names(sample.id_6) <- rownames(s5.tissue@meta.data)
 s5.blood <- AddMetaData(s5.blood, sample.id_5, col.name = 'Sample_origin')
 s5.tissue <- AddMetaData(s5.tissue, sample.id_6, col.name = 'Sample_origin')
 
-
-
 ## Write individual object metadata to file
 # Subject 1
 write.csv(s1.blood@meta.data, here('output', 's1 blood_metadata.csv'))
@@ -147,8 +133,6 @@ write.csv(s2.tissue@meta.data, here('output', 's2 tissue_metadata.csv'))
 # Subject 5
 write.csv(s5.blood@meta.data, here('output', 's5 blood_metadata.csv'))
 write.csv(s5.tissue@meta.data, here('output', 's5 tissue_metadata.csv'))
-
-
 
 ## Write QC metrics
 # Subject 1
@@ -190,8 +174,6 @@ s5.tissue.QC_mets.plot  <- VlnPlot(s5.tissue, features = c('nFeature_RNA', 'nCou
 ggsave('s5 blood QC_mets.plot.png', plot = s5.blood.QC_mets.plot, device = 'png', path = here('output', 'QC', 'subject_5'))
 ggsave('s5 tissue QC_mets.plot.png', plot = s5.tissue.QC_mets.plot, device = 'png', path = here('output', 'QC', 'subject_5'))
 
-
-
 ## Remove temp objects
 rm(s1.blood.data,
    s1.tissue.data,
@@ -221,10 +203,7 @@ rm(s1.blood.data,
 
 gc()
 
-
-
 # Annotating cell types -----
-
 ## Annotate the cells w/SingleR
 # Subject 1
 s1.blood <- NormalizeData(s1.blood)
@@ -238,11 +217,7 @@ s2.tissue <- NormalizeData(s2.tissue)
 s5.blood <- NormalizeData(s5.blood)
 s5.tissue <- NormalizeData(s5.tissue)
 
-
-
 ref.se <- HumanPrimaryCellAtlasData() # snapshot date: 2020-10-27
-
-
 
 # Subject 1
 s1.blood_sce <- as.SingleCellExperiment(s1.blood)
@@ -266,8 +241,6 @@ s1.tissue[['celltype']] <- pred.s1.tissue$pruned.labels
 write.csv(pred.s1.blood, here('output', 'singleR', 's1 blood singleR scores.csv'))
 write.csv(pred.s1.tissue, here('output', 'singleR', 's1 tissue singleR scores.csv'))
 
-
-
 # Subject 2
 s2.blood_sce <- as.SingleCellExperiment(s2.blood)
 s2.tissue_sce <- as.SingleCellExperiment(s2.tissue)
@@ -290,8 +263,6 @@ s2.tissue[['celltype']] <- pred.s2.tissue$pruned.labels
 write.csv(pred.s2.blood, here('output', 'singleR', 's2 blood singleR scores.csv'))
 write.csv(pred.s2.tissue, here('output', 'singleR', 's2 tissue singleR scores.csv'))
 
-
-
 # Subject 5
 s5.blood_sce <- as.SingleCellExperiment(s5.blood)
 s5.tissue_sce <- as.SingleCellExperiment(s5.tissue)
@@ -313,8 +284,6 @@ s5.tissue[['celltype']] <- pred.s5.tissue$pruned.labels
 
 write.csv(pred.s5.blood, here('output', 'singleR', 's5 blood singleR scores.csv'))
 write.csv(pred.s5.tissue, here('output', 'singleR', 's5 tissue singleR scores.csv'))
-
-
 
 ## Remove temp objects
 rm(ref.se,
@@ -346,10 +315,7 @@ rm(ref.se,
 
 gc()
 
-
-
 # Object integration -----
-
 ## Integrating all cells from all days
 sample.list <- c(
   s1.blood,
@@ -359,6 +325,7 @@ sample.list <- c(
   s5.blood,
   s5.tissue
 )
+
 names(sample.list) <- c(
   's1 blood',
   's1 tissue',
@@ -367,6 +334,7 @@ names(sample.list) <- c(
   's5 blood',
   's5 tissue'
 )
+
 for (i in 1:length(sample.list))
   {sample.list[[i]] <- SCTransform(sample.list[[i]], verbose = TRUE)}
 sample.features <- SelectIntegrationFeatures(object.list = sample.list, nfeatures = 3000)
@@ -378,8 +346,6 @@ ortho.integrated <- RunUMAP(ortho.integrated, dims = 1:30)
 ortho.integrated <- FindNeighbors(ortho.integrated, dims = 1:30)
 ortho.integrated <- FindClusters(ortho.integrated, resolution = 0.5)
 saveRDS(ortho.integrated, here('output', 'ortho.integrated.rds'))
-
-
 
 ## Remove temp objects
 rm(sample.list,
@@ -396,20 +362,14 @@ rm(sample.list,
 
 gc()
 
-
-
 ## Output celltype composition of each cluster
 sample.comp_origin <- table(ortho.integrated$Sample_origin)
 clust.comp_origin <- table(Idents(ortho.integrated), ortho.integrated$Sample_origin)
 clust.comp_celltype <- prop.table(table(Idents(ortho.integrated), ortho.integrated$celltype), margin = 1)
 
-
-
 write.csv(sample.comp_origin, here('output', 'sample.comp_origin.csv'))
 write.csv(clust.comp_origin, here('output', 'clust.comp_origin.csv'))
 write.csv(clust.comp_celltype, here('output', 'clust.comp_celltype.csv'))
-
-
 
 rm(sample.comp_origin,
    clust.comp_origin,
@@ -417,10 +377,7 @@ rm(sample.comp_origin,
 
 gc()
 
-
-
 # Renaming/plotting -----
-
 ## Renaming clusters
 new.cluster.ids <- c(
   'Granulocytes 1',
@@ -445,18 +402,12 @@ new.cluster.ids <- c(
 names(new.cluster.ids) <- levels(ortho.integrated)
 ortho.integrated <- RenameIdents(ortho.integrated, new.cluster.ids)
 
-
-
 rm(new.cluster.ids)
 
 gc()
 
-
-
 ## Save seurat objects
 saveRDS(ortho.integrated, here('output', 'ortho.integrated.rds'))
-
-
 
 ## Plotting w/new labels
 ortho_pca.origin <- DimPlot(
@@ -484,8 +435,6 @@ theme(
   axis.ticks = element_blank()
 )
 
-
-
 ortho_pca.clus <- DimPlot(
   ortho.integrated,
   reduction = 'pca',
@@ -504,8 +453,6 @@ theme(
   axis.text = element_blank(),
   axis.ticks = element_blank()
 )
-
-
 
 ortho_umap.origin <- DimPlot(
   ortho.integrated,
@@ -531,8 +478,6 @@ theme(
   axis.ticks = element_blank()
 )
 
-
-
 ortho_umap.clus <- DimPlot(
   ortho.integrated,
   label = TRUE,
@@ -551,14 +496,10 @@ theme(
   axis.ticks = element_blank()
 )
 
-
-
 ggsave('ortho_pca origin.png', plot = ortho_pca.origin, device = 'png', path = here('output'))
 ggsave('ortho_pca cluster.png', plot = ortho_pca.clus, device = 'png', path = here('output'))
 ggsave('ortho_umap origin.png', plot = ortho_umap.origin, device = 'png', path = here('output'))
 ggsave('ortho_umap cluster.png', plot = ortho_umap.clus, device = 'png', path = here('output'))
-
-
 
 rm(
   ortho_pca.origin,
@@ -568,8 +509,6 @@ rm(
 )
 
 gc()
-
-
 
 ## Output cluster number to name cheat sheet
 num2name <- data.frame(
@@ -581,13 +520,9 @@ write.csv(num2name, here('output', 'num 2 name cheat sheet.csv'))
 ## Write the metadata to a file
 write.csv(ortho.integrated@meta.data, here('output', 'ortho integrated_metadata.csv'))
 
-
-
 rm(num2name)
 
 gc()
-
-
 
 ## Output m vs p for each cluster
 sample.comp_origin <- table(ortho.integrated$Sample_origin)
@@ -598,15 +533,11 @@ write.csv(sample.comp_origin, here('output', 'sample.comp_origin.csv'))
 write.csv(clust.comp_origin, here('output', 'clust.comp_origin.csv'))
 write.csv(clust.comp_celltype, here('output', 'clust.comp_celltype.csv'))
 
-
-
 rm(sample.comp_origin,
    clust.comp_origin,
    clust.comp_celltype)
 
 gc()
-
-
 
 ## Subsetting out
 brain.microglia <- subset(brain.integrated, idents = c('Microglia 1',
@@ -617,9 +548,6 @@ brain.granulocyte <- subset(brain.integrated, idents = c('Granulocytes 1',
                                                          'Granulocytes 3'))
 brain.monomac <- subset(brain.integrated, idents = c('Mono/Mac 1',
                                                      'Mono/Mac 2'))
-
-
-
 
 # Cluster-level DE -----
 DefaultAssay(ortho.integrated) <- 'RNA'
@@ -637,8 +565,6 @@ for (i in seq_along(levels(DE$cluster))) {
   }
 }
 
-
-
 rm(
   i,
   single.DE,
@@ -646,9 +572,6 @@ rm(
 )
 
 gc()
-
-
-
 
 ## Within cluster DE Analysis
 c00 <- subset(ortho.integrated, idents = c('Granulocytes 1'))
@@ -669,7 +592,6 @@ c14 <- subset(ortho.integrated, idents = c('Granulocytes 11'))
 c15 <- subset(ortho.integrated, idents = c('NK/T Cells'))
 c16 <- subset(ortho.integrated, idents = c('Granulocytes 12'))
 
-
 c.list <- list(
   c00,
   c01,
@@ -690,8 +612,6 @@ c.list <- list(
   c16
 )
 
-
-
 rm(
   c00,
   c01,
@@ -714,8 +634,6 @@ rm(
 
 gc()
 
-
-
 for(i in 1:length(c.list)){
   DefaultAssay(c.list[[i]]) <- 'RNA'
   c.list[[i]] <- NormalizeData(c.list[[i]], verbose = TRUE)
@@ -732,8 +650,6 @@ for(i in 1:length(c.list)){
   write.csv(DE, here('output', 'DE', 'within cluster', paste0('DE_', i-1, '.csv')))
 }
 
-
-
 rm(
   i,
   c.list,
@@ -742,13 +658,9 @@ rm(
 
 gc()
 
-
-
 ## Within cluster blood vs tissue DE Analysis
 ortho.integrated$origin <- str_split(ortho.integrated$Sample_origin, ' ', simplify = TRUE)[,2]
 ortho.integrated$cell <- Idents(ortho.integrated)
-
-
 
 c00 <- subset(ortho.integrated, idents = c('Granulocytes 1'))
 c01 <- subset(ortho.integrated, idents = c('Granulocytes/Myelocytes 1'))
@@ -768,7 +680,6 @@ c14 <- subset(ortho.integrated, idents = c('Granulocytes 11'))
 c15 <- subset(ortho.integrated, idents = c('NK/T Cells'))
 c16 <- subset(ortho.integrated, idents = c('Granulocytes 12'))
 
-
 c.list <- list(
   c00,
   c01,
@@ -789,8 +700,6 @@ c.list <- list(
   c16
 )
 
-
-
 rm(
   c00,
   c01,
@@ -813,8 +722,6 @@ rm(
 
 gc()
 
-
-
 for(i in 1:length(c.list)){
   DefaultAssay(c.list[[i]]) <- 'RNA'
   c.list[[i]] <- NormalizeData(c.list[[i]], verbose = TRUE)
@@ -830,8 +737,6 @@ for(i in 1:length(c.list)){
   write.csv(DE, here('output', 'DE', 'within cluster', 'blood_v_tissue', paste0('DE_', i-1, '.csv')))
 }
 
-
-
 rm(
   i,
   c.list,
@@ -839,8 +744,6 @@ rm(
 )
 
 gc()
-
-
 
 # Cluster-level GSEA -----
 # Between cluster
@@ -927,8 +830,6 @@ for (i in 1:length(geneSet_list)) {
   }
 }
 
-
-
 rm(
   geneSet_list,
   m_list,
@@ -945,8 +846,6 @@ rm(
 )
 
 gc()
-
-
 
 c2_00 <- read.csv(here('output', 'GSEA', 'csv', 'C2', 'C2_eaRes_0.csv'))
 c2_01 <- read.csv(here('output', 'GSEA', 'csv', 'C2', 'C2_eaRes_1.csv'))
@@ -1002,24 +901,17 @@ c5_14 <- read.csv(here('output', 'GSEA', 'csv', 'C5', 'C5_eaRes_14.csv'))
 c5_15 <- read.csv(here('output', 'GSEA', 'csv', 'C5', 'C5_eaRes_15.csv'))
 c5_16 <- read.csv(here('output', 'GSEA', 'csv', 'C5', 'C5_eaRes_16.csv'))
 
-
 c2 <- rbind(c2_00, c2_01, c2_02, c2_03, c2_04, c2_05, c2_06, c2_07, c2_08, c2_09, c2_10, c2_11, c2_12, c2_13, c2_14, c2_15, c2_16)
 h <- rbind(h_00, h_01, h_02, h_03, h_04, h_05, h_06, h_07, h_08, h_09, h_10, h_11, h_12, h_13, h_14, h_15, h_16)
 c5 <- rbind(c5_00, c5_01, c5_02, c5_03, c5_04, c5_05, c5_06, c5_07, c5_08, c5_09, c5_10, c5_11, c5_12, c5_13, c5_14, c5_15, c5_16)
-
-
 
 write.csv(c2, here('output', 'GSEA', 'full_C2.csv'))
 write.csv(h, here('output', 'GSEA', 'full_H.csv'))
 write.csv(c5, here('output', 'GSEA', 'full_C5.csv'))
 
-
-
 rm(c2_00, c2_01, c2_02, c2_03, c2_04, c2_05, c2_06, c2_07, c2_08, c2_09, c2_10, c2_11, c2_12, c2_13, c2_14, c2_15, c2_16)
 rm(h_00, h_01, h_02, h_03, h_04, h_05, h_06, h_07, h_08, h_09, h_10, h_11, h_12, h_13, h_14, h_15, h_16)
 rm(c5_00, c5_01, c5_02, c5_03, c5_04, c5_05, c5_06, c5_07, c5_08, c5_09, c5_10, c5_11, c5_12, c5_13, c5_14, c5_15, c5_16)
-
-
 
 # Within cluster
 GO.set <- msigdbr(species = 'Homo sapiens', category = 'C5', subcategory = 'BP') # GO:BP
@@ -1116,8 +1008,6 @@ for (i in 1:length(geneSet_list)) {
   }
 }
 
-
-
 rm(
   geneSet_list,
   m_list,
@@ -1135,8 +1025,6 @@ rm(
 )
 
 gc()
-
-
 
 c2_00_s1.blood <- read.csv(here('output', 'GSEA', 'within cluster', 'csv', 'C2', 'C2_eaRes_0_s1 blood.csv'))
 c2_00_s2.blood <- read.csv(here('output', 'GSEA', 'within cluster', 'csv', 'C2', 'C2_eaRes_0_s2 blood.csv'))
@@ -1256,8 +1144,6 @@ c2_16_s5.blood <- read.csv(here('output', 'GSEA', 'within cluster', 'csv', 'C2',
 c2_16_s1.tissue <- read.csv(here('output', 'GSEA', 'within cluster', 'csv', 'C2', 'C2_eaRes_16_s1 tissue.csv'))
 c2_16_s2.tissue <- read.csv(here('output', 'GSEA', 'within cluster', 'csv', 'C2', 'C2_eaRes_16_s2 tissue.csv'))
 c2_16_s5.tissue <- read.csv(here('output', 'GSEA', 'within cluster', 'csv', 'C2', 'C2_eaRes_16_s5 tissue.csv'))
-
-
 
 h_00_s1.blood <- read.csv(here('output', 'GSEA', 'within cluster', 'csv', 'H', 'H_eaRes_0_s1 blood.csv'))
 h_00_s2.blood <- read.csv(here('output', 'GSEA', 'within cluster', 'csv', 'H', 'H_eaRes_0_s2 blood.csv'))
@@ -1499,8 +1385,6 @@ c5_16_s1.tissue <- read.csv(here('output', 'GSEA', 'within cluster', 'csv', 'C5'
 c5_16_s2.tissue <- read.csv(here('output', 'GSEA', 'within cluster', 'csv', 'C5', 'C5_eaRes_16_s2 tissue.csv'))
 c5_16_s5.tissue <- read.csv(here('output', 'GSEA', 'within cluster', 'csv', 'C5', 'C5_eaRes_16_s5 tissue.csv'))
 
-
-
 s1.c2_blood <- rbind(
   c2_00_s1.blood,
   c2_01_s1.blood,
@@ -1620,8 +1504,6 @@ s5.c2_tissue <- rbind(
   c2_15_s5.tissue,
   c2_16_s5.tissue
 )
-
-
 
 s1.h_blood <- rbind(
   h_00_s1.blood,
@@ -1743,8 +1625,6 @@ s5.h_tissue <- rbind(
   h_16_s5.tissue
 )
 
-
-
 s1.c5_blood <- rbind(
   c5_00_s1.blood,
   c5_01_s1.blood,
@@ -1865,8 +1745,6 @@ s5.c5_tissue <- rbind(
   c5_16_s5.tissue
 )
 
-
-
 write.csv(s1.c2_blood, here('output', 'GSEA', 'within cluster', 'full_C2_s1 blood.csv'))
 write.csv(s1.c2_tissue, here('output', 'GSEA', 'within cluster', 'full_C2_s1 tissue.csv'))
 write.csv(s2.c2_blood, here('output', 'GSEA', 'within cluster', 'full_C2_s2 blood.csv'))
@@ -1887,8 +1765,6 @@ write.csv(s2.c5_blood, here('output', 'GSEA', 'within cluster', 'full_C5_s2 bloo
 write.csv(s2.c5_tissue, here('output', 'GSEA', 'within cluster', 'full_C5_s2 tissue.csv'))
 write.csv(s5.c5_blood, here('output', 'GSEA', 'within cluster', 'full_C5_s5 blood.csv'))
 write.csv(s5.c5_tissue, here('output', 'GSEA', 'within cluster', 'full_C5_s5 tissue.csv'))
-
-
 
 # Within cluster blood vs tissue
 GO.set <- msigdbr(species = 'Homo sapiens', category = 'C5', subcategory = 'BP') # GO:BP
@@ -1988,8 +1864,6 @@ for (i in 1:length(geneSet_list)) {
   }
 }
 
-
-
 rm(
   geneSet_list,
   m_list,
@@ -2007,8 +1881,6 @@ rm(
 )
 
 gc()
-
-
 
 c2_00_blood <- read.csv(here('output', 'GSEA', 'within cluster', 'blood_v_tissue', 'csv', 'C2', 'C2_eaRes_0_blood.csv'))
 c2_00_tissue <- read.csv(here('output', 'GSEA', 'within cluster', 'blood_v_tissue', 'csv', 'C2', 'C2_eaRes_0_tissue.csv'))
@@ -2114,8 +1986,6 @@ h_15_tissue <- read.csv(here('output', 'GSEA', 'within cluster', 'blood_v_tissue
 h_16_blood <- read.csv(here('output', 'GSEA', 'within cluster', 'blood_v_tissue', 'csv', 'H', 'H_eaRes_16_blood.csv'))
 h_16_tissue <- read.csv(here('output', 'GSEA', 'within cluster', 'blood_v_tissue', 'csv', 'H', 'H_eaRes_16_tissue.csv'))
 
-
-
 c5_00_blood <- read.csv(here('output', 'GSEA', 'within cluster', 'blood_v_tissue', 'csv', 'C5', 'C5_eaRes_0_blood.csv'))
 c5_00_tissue <- read.csv(here('output', 'GSEA', 'within cluster', 'blood_v_tissue', 'csv', 'C5', 'C5_eaRes_0_tissue.csv'))
 
@@ -2167,8 +2037,6 @@ c5_15_tissue <- read.csv(here('output', 'GSEA', 'within cluster', 'blood_v_tissu
 c5_16_blood <- read.csv(here('output', 'GSEA', 'within cluster', 'blood_v_tissue', 'csv', 'C5', 'C5_eaRes_16_blood.csv'))
 c5_16_tissue <- read.csv(here('output', 'GSEA', 'within cluster', 'blood_v_tissue', 'csv', 'C5', 'C5_eaRes_16_tissue.csv'))
 
-
-
 c2_blood <- rbind(
   c2_00_blood,
   c2_01_blood,
@@ -2208,8 +2076,6 @@ c2_tissue <- rbind(
   c2_15_tissue,
   c2_16_tissue
 )
-
-
 
 h_blood <- rbind(
   h_00_blood,
@@ -2251,8 +2117,6 @@ h_tissue <- rbind(
   h_16_tissue
 )
 
-
-
 c5_blood <- rbind(
   c5_00_blood,
   c5_01_blood,
@@ -2293,8 +2157,6 @@ c5_tissue <- rbind(
   c5_16_tissue
 )
 
-
-
 write.csv(c2_blood, here('output', 'GSEA', 'within cluster', 'blood_v_tissue', 'full_C2_blood.csv'))
 write.csv(c2_tissue, here('output', 'GSEA', 'within cluster', 'blood_v_tissue', 'full_C2_tissue.csv'))
 
@@ -2304,10 +2166,7 @@ write.csv(h_tissue, here('output', 'GSEA', 'within cluster', 'blood_v_tissue', '
 write.csv(c5_blood, here('output', 'GSEA', 'within cluster', 'blood_v_tissue', 'full_C5_blood.csv'))
 write.csv(c5_tissue, here('output', 'GSEA', 'within cluster', 'blood_v_tissue', 'full_C5_tissue.csv'))
 
-
-
 # Single-cell GSEA ------
-
 GS <- getGeneSets(library = 'H', species = 'Mus musculus')
 # GS <- getGeneSets(library = 'C5', species = 'Mus musculus')
 ES <- enrichIt(neutro.integrated, gene.sets = GS, groups = 1000, cores = 2)
@@ -2319,8 +2178,6 @@ multi_dittoPlot(neutro.integrated, vars = c('HALLMARK_APOPTOSIS', 'HALLMARK_FATT
                 group.by = 'seurat_clusters', plots = c('jitter', 'vlnplot', 'boxplot'), 
                 ylab = 'Enrichment Scores', 
                 theme = theme_classic() + theme(plot.title = element_text(size = 10)))
-
-
 
 ES2 <- data.frame(neutro.integrated[[]], Idents(neutro.integrated))
 colnames(ES2)[ncol(ES2)] <- 'cluster'
@@ -2334,10 +2191,7 @@ pcaEnrichment(PCA, PCx = 'PC1', PCy = 'PC2', contours = FALSE, facet = 'seurat_c
 
 output <- getSignificance(ES2, group = 'seurat_clusters', fit = 'ANOVA') # Can use linear.model, T.test, or ANOVA
 
-
-
 # Complex Heatmap ------
-
 # Cluster-averaged normalized counts
 ## Average single cell data & pull out normalized counts
 ## Counts are normalized by dividing the counts for a given feature by the total counts per cell, multiplying by a scale factor (default == 10,000), and then taking the natural log using log1p()
@@ -2379,8 +2233,6 @@ s2.blood_anc <- rownames_to_column(s2.blood_anc, var = 'gene')
 s2.tissue_anc <- rownames_to_column(s2.tissue_anc, var = 'gene')
 s5.blood_anc <- rownames_to_column(s5.blood_anc, var = 'gene')
 s5.tissue_anc <- rownames_to_column(s5.tissue_anc, var = 'gene')
-
-
 
 rm(
   s1.blood,
@@ -2425,8 +2277,6 @@ gene_list <- c(
   'Adpgk',
   'Cd177'
 )
-
-
 
 # PMN genes based on Lung et al (Cell Metab 2022)
 gene_list <- c(
@@ -2476,11 +2326,7 @@ m_mdsc <- c(
   'LY6C1'
 )
 
-
-
 gene_list <- c(g_mdsc.1, g_mdsc.2, m_mdsc)
-
-
 
 rm(
   g_mdsc.1,
@@ -2489,8 +2335,6 @@ rm(
 )
 
 gc()
-
-
 
 # PMN-MDSC based on Veglia et al (Nat Rev Immunol 2021)
 pmn_mdsc <- c(
@@ -2542,8 +2386,6 @@ m_mdsc <- c(
 
 gene_list <- m_mdsc
 
-
-
 rm(
   pmn_mdsc,
   m_mdsc
@@ -2561,8 +2403,6 @@ heatmap.data <- anc %>%
 heatmap.data <- column_to_rownames(heatmap.data, var = 'gene')
 heatmap.data <- as.matrix(heatmap.data)
 heatmap.data <- heatmap.data[rowSums(heatmap.data) != 0, ]
-
-
 
 # Row annotations
 # Alshetaiwi et al (Sci Immunol 2020)
@@ -2613,7 +2453,6 @@ gene_anno <- c(
   'G-MDSC (Type I)'
 )
 
-
 # Blood v Tissue
 col_anno <- c(
   'Blood',
@@ -2652,8 +2491,6 @@ col_anno <- c(
   'Tissue'
 )
 
-
-
 htmp_range <- c(max(heatmap.data), -min(heatmap.data))
 htmp_range <- max(htmp_range)
 htmp_range <- ceiling(htmp_range)
@@ -2681,11 +2518,7 @@ ht <- ComplexHeatmap::Heatmap(
     }
 )
 
-
-
 ComplexHeatmap::draw(ht, padding = unit(c(10, 5, 2, 5), 'mm')) # bottom, left, top, right paddings
-
-
 
 rm(
   gene_list,
@@ -2698,8 +2531,6 @@ rm(
 )
 
 gc()
-
-
 
 # Top pathways
 top_pathways <- pathways %>%
@@ -2784,8 +2615,6 @@ ht <- ComplexHeatmap::Heatmap(
 
 ComplexHeatmap::draw(ht, padding = unit(c(70, 5, 2, 5), 'mm')) # bottom, left, top, right paddings
 
-
-
 # Top DE genes
 top_genes_up <- de %>%
   arrange(desc(avg_log2FC)) %>%
@@ -2838,8 +2667,6 @@ htmp_range <- c(max(heatmap.data), -min(heatmap.data))
 htmp_range <- max(htmp_range)
 htmp_range <- ceiling(htmp_range)
 
-
-
 col_fun = circlize::colorRamp2(c(-htmp_range, 0, htmp_range), c('blue', 'white', 'red'))
 
 ht <- ComplexHeatmap::Heatmap(
@@ -2873,12 +2700,8 @@ ht <- ComplexHeatmap::Heatmap(
 
 ComplexHeatmap::draw(ht, padding = unit(c(2, 5, 2, 5), 'mm')) # bottom, left, top, right paddings
 
-
-
 # Trajectory Analysis -----
-
 # Finding trajectories =====
-
 ## Inferring trajectories
 object_counts <- Matrix::t(as(as.matrix(neutro.integrated@assays$RNA@counts), 'sparseMatrix'))
 object_expression <- Matrix::t(as(as.matrix(neutro.integrated@assays$RNA@data), 'sparseMatrix'))
@@ -2887,7 +2710,10 @@ neutro.integrated_dyn <- wrap_expression(
   expression = object_expression
 )
 
-rm(object_counts, object_expression)
+rm(
+  object_counts,
+  object_expression
+)
 
 ## Add a dimensionality reduction
 neutro.integrated_dimred <- dyndimred::dimred_umap(neutro.integrated_dyn$expression)
@@ -2912,12 +2738,8 @@ neutro.integrated_model <- add_root(neutro.integrated_model, root_milestone_id =
 simp <- simplify_trajectory(neutro.integrated_model)
 simp_lab <- simp %>% label_milestones(c('1' = 'Stuck', '3' = 'Bifurcation', '4' = 'Mature', '5' = 'Immature'))
 
-
-
 # Plotting gene expression over pseudotime =====
-
 # Slingshot #####
-
 ## Get trajectory & clustering information for lineage acquisition (pseudotime)
 expression <- Matrix::t(as(as.matrix(neutro.integrated@assays$RNA@data), 'sparseMatrix'))
 ndim <- 20L
@@ -2955,24 +2777,37 @@ clusterings <- lapply(3:max_clusters, function(K){
 wh.cl <- which.max(sapply(clusterings, function(x){ x$silinfo$avg.width })) + 1
 labels <- clusterings[[min(c(wh.cl, 8))]]$clustering
 
-rm(ndim, optpoint, optpoint1, optpoint2, x, pca, proj, line, expression, clusterings, wh.cl, max_clusters)
-
-
+rm(
+  ndim,
+  optpoint,
+  optpoint1,
+  optpoint2,
+  x,
+  pca,
+  proj,
+  line,
+  expression,
+  clusterings,
+  wh.cl,
+  max_clusters
+)
 
 ## Find trajectory
 lineages <- getLineages(dimred, labels, start.clus = '4')
 sling <- getCurves(lineages, shrink = 1L, reweight = T, reassign = T, thresh = 0.001, maxit = 10L, stretch = 2L, smoother = 'smooth.spline', shrink.method = 'cosine') ## Parameters taken from dynverse ti_slingshot code
 
-rm(dimred, labels, lineages)
-
-
+rm(
+  dimred,
+  labels,
+  lineages
+)
 
 # TradeSeq #####
-
 ## Find optimal number of knots to use for GAM fitting
 counts <- neutro.integrated@assays$RNA@counts
 filt <- rowSums(counts > 1) >= 120 # Filtering transcripts (genes w/count of at least two in at least 120 different cells)
 counts.filt <- counts[filt, ]
+
 rm(filt)
 
 icMat <- evaluateK(counts = as.matrix(counts.filt), sds = sling, k = 3:15, nGenes = 300, verbose = T, plot = T)
@@ -3020,7 +2855,10 @@ endRes.comp <- endRes[, c('Gene', 'end')]
 compare <- merge(patternRes.comp, endRes.comp, by = 'Gene', all = F)
 compare$transientScore <- rank(-compare$end, ties.method = 'min')^2 + rank(compare$pattern, ties.method = 'random')^2
 
-rm(patternRes.comp, endRes.comp)
+rm(
+  patternRes.comp,
+  endRes.comp
+)
 
 ## Plotting
 ## Expression vs Pseudotime
@@ -3054,7 +2892,10 @@ for (i in seq_along(unique(Gene.Cluster$cluster))) {
   }
 }
 
-rm(clust, i)
+rm(
+  clust,
+  i
+)
 
 for (xx in sort(cUniq)[1:6]) {
   cId <- which(clusterLabels == xx)
@@ -3080,12 +2921,18 @@ for (xx in sort(cUniq)[1:6]) {
   assign(paste0('c', xx), p)
 }
 
-rm(geneId, ii, xx, p, cId, nPointsClus, cUniq, clusterLabels)
-
-
+rm(
+  geneId,
+  ii,
+  xx,
+  p,
+  cId,
+  nPointsClus,
+  cUniq,
+  clusterLabels
+)
 
 # TradeSeq GSEA #####
-
 ## fgsea
 geneSets <- msigdbr(species = 'Mus musculus', category = 'C5', subcategory = 'BP') # GO:BP
 # geneSets <- msigdbr(species = 'Mus musculus', category = 'C2', subcategory = 'CP:KEGG') # KEGG
@@ -3107,30 +2954,9 @@ fwrite(eaRes.lin2, file = here('Integrated', 'Pseudotime', 'Real time', 'TradeSe
 fwrite(eaRes.lin1_unique, file = here('Integrated', 'Pseudotime', 'Real time', 'TradeSeq', 'fgsea', 'GO_unique lineage 1 enrichment analysis.tsv'), sep="\t", sep2=c("", " ", ""))
 fwrite(eaRes.lin2_unique, file = here('Integrated', 'Pseudotime', 'Real time', 'TradeSeq', 'fgsea', 'GO_unique lineage 2 enrichment analysis.tsv'), sep="\t", sep2=c("", " ", ""))
 
-rm(geneSets, m_list, stats.lin1, stats.lin2)
-
-
-
-# Notes -----
-
-# If you'd like to do everything in three dimensions, use RumUMAP(object, dims = 1:n, n.components = 3L). Bringing this into
-# Slingshot requires you to create objects that contain the cell embeddings (object@reductions$umap@cell.embeddings) & the
-# clustering info (object@active.iden (or any grouping you desire)). You can then supply these to slingshot as you normally
-# would. If you would like to visualize, you could do the following (requires rgl package):
-
-# gg_color_hue <- function(n) {
-#   hues = seq(15, 375, length = n + 1)
-#   hcl(h = hues, l = 65, c = 100)[1:n]
-# }
-# plot3d.SlingshotDataSet(sds)
-# plot3d(rd, col = gg_color_hue(10)[cl], aspect = 'iso', add = T)
-
-
-# I'm not sure if using three dimensions has any clear benefit over using two, but it may.
-
-
-
-# Test area -----
-
-
-
+rm(
+  geneSets,
+  m_list,
+  stats.lin1,
+  stats.lin2
+)

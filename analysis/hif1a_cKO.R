@@ -5,9 +5,6 @@
 
 ## Notes: WT & Hif1a cKO mice were infected & tissue samples were prepared for scRNA-seq at D3 & D14 post-infection; 2-Mar == Marc2 (row #892) & 2-Mar == March2 (row #13629)
 
-
-
-
 # Setting up environment -----
 
 ## Load in packages
@@ -35,7 +32,7 @@ packages <- c(
   'sqldf'
   )
 
-invisible(lapply(packages, library, character.only = T))
+invisible(lapply(packages, library, character.only = TRUE))
 
 rm(packages)
 
@@ -43,10 +40,7 @@ rm(packages)
 options(future.globals.maxSize = 4000 * 1024^2)
 set.seed(12345)
 
-
-
 # Initializing objects -----
-
 ## Setting up Seurat objects
 ## Load in the data
 d3_null.data <- Read10X(data.dir = here('raw_data', 'd3_null'))
@@ -236,10 +230,7 @@ rm(
 
 gc()
 
-
-
 # Annotating cell types -----
-
 ## Annotate the cells w/SingleR
 d3_null <- NormalizeData(d3_null)
 d3_cre <- NormalizeData(d3_cre)
@@ -293,8 +284,6 @@ d3_cre[['celltype']] <- pred.d3_cre$pruned.labels
 d14_null[['celltype']] <- pred.d14_null$pruned.labels
 d14_cre[['celltype']] <- pred.d14_cre$pruned.labels
 
-
-
 ## Remove temp objects
 rm(
   ref.se,
@@ -318,10 +307,7 @@ rm(
 
 gc()
 
-
-
 # Object integration -----
-
 ## Integrating all cells from all days
 sample.list <- c(
   d3_null,
@@ -336,32 +322,30 @@ names(sample.list) <- c(
   'd14_cre'
   )
 for (i in 1:length(sample.list))
-  {sample.list[[i]] <- SCTransform(sample.list[[i]], verbose = T)}
+  {sample.list[[i]] <- SCTransform(sample.list[[i]], verbose = TRUE)}
 sample.features <- SelectIntegrationFeatures(object.list = sample.list, nfeatures = 3000)
 sample.list <- PrepSCTIntegration(
   object.list = sample.list,
   anchor.features = sample.features,
-  verbose = T
+  verbose = TRUE
   )
 sample.anchors <- FindIntegrationAnchors(
   object.list = sample.list,
   normalization.method = 'SCT',
   anchor.features = sample.features,
-  verbose = T
+  verbose = TRUE
   )
 integrated <- IntegrateData(
   anchorset = sample.anchors,
   normalization.method = 'SCT',
-  verbose = T
+  verbose = TRUE
   )
-integrated <- RunPCA(integrated, verbose = T)
+integrated <- RunPCA(integrated, verbose = TRUE)
 integrated <- RunUMAP(integrated, dims = 1:30)
 integrated <- FindNeighbors(integrated, dims = 1:30)
 integrated <- FindClusters(integrated, resolution = 0.5)
 
 saveRDS(integrated, here('output', 'integrated.rds'))
-
-
 
 ## Remove temp objects
 rm(
@@ -377,8 +361,6 @@ rm(
 
 gc()
 
-
-
 ## Output celltype composition of each cluster
 sample.comp_origin <- table(integrated$sample_origin)
 clust.comp_origin <- table(Idents(integrated), integrated$sample_origin)
@@ -388,8 +370,6 @@ write.csv(sample.comp_origin, here('output', 'sample.comp_origin.csv'))
 write.csv(clust.comp_origin, here('output', 'clust.comp_origin.csv'))
 write.csv(clust.comp_celltype, here('output', 'clust.comp_celltype.csv'))
 
-
-
 rm(
   sample.comp_origin,
   clust.comp_origin,
@@ -398,10 +378,7 @@ rm(
 
 gc()
 
-
-
 # Renaming/plotting -----
-
 ## Renaming clusters
 new.cluster.ids <- c(
   'Granulocytes 1',
@@ -420,18 +397,12 @@ new.cluster.ids <- c(
 names(new.cluster.ids) <- levels(integrated)
 integrated <- RenameIdents(integrated, new.cluster.ids)
 
-
-
 rm(new.cluster.ids)
 
 gc()
 
-
-
 ## Save seurat objects
 saveRDS(integrated, here('output', 'integrated.rds'))
-
-
 
 ## Plotting w/new labels
 integrated_pca.origin <- DimPlot(
@@ -449,9 +420,9 @@ integrated_pca.origin <- DimPlot(
 integrated_pca.clus <- DimPlot(
   integrated,
   reduction = 'pca',
-  label = T,
-  label.box = T,
-  repel = T,
+  label = TRUE,
+  label.box = TRUE,
+  repel = TRUE,
   pt.size = 1.5) +
   theme_classic() +
   NoLegend() +
@@ -472,17 +443,15 @@ integrated_umap.origin <- DimPlot(
 
 integrated_umap.clus <- DimPlot(
   integrated,
-  label = T,
-  label.box = T,
-  repel = T,
+  label = TRUE,
+  label.box = TRUE,
+  repel = TRUE,
   pt.size = 1.5) +
   theme_classic() +
   NoLegend() +
   labs(x = 'UMAP 1', y = 'UMAP 2') +
   theme(axis.text = element_blank(), axis.ticks = element_blank()
   )
-
-
 
 ggsave(
   'integrated_pca origin.png',
@@ -512,8 +481,6 @@ ggsave(
   path = here('output')
   )
 
-
-
 rm(
   integrated_pca.origin,
   integrated_pca.clus,
@@ -522,8 +489,6 @@ rm(
   )
 
 gc()
-
-
 
 ## Output cluster number to name cheat sheet
 num2name <- data.frame(
@@ -536,13 +501,9 @@ write.csv(num2name, here('output', 'num 2 name cheat sheet.csv'))
 ## Write the metadata to a file
 write.csv(integrated@meta.data, here('output', 'integrated_metadata.csv'))
 
-
-
 rm(num2name)
 
 gc()
-
-
 
 ## Output origin for each cluster
 sample.comp_origin <- t(table(integrated$Sample_origin))
@@ -553,8 +514,6 @@ write.csv(sample.comp_origin, here('output', 'sample.comp_origin.csv'))
 write.csv(clust.comp_origin, here('output', 'clust.comp_origin.csv'))
 write.csv(clust.comp_celltype, here('output', 'clust.comp_celltype.csv'))
 
-
-
 rm(
   sample.comp_origin,
   clust.comp_origin,
@@ -563,8 +522,6 @@ rm(
 
 gc()
 
-
-
 ## Subsetting out
 integrated.granulocyte <- subset(brain.integrated, idents = c(
   'Microglia 1',
@@ -572,15 +529,11 @@ integrated.granulocyte <- subset(brain.integrated, idents = c(
   'Microglia 3')
   )
 
-
-
-
 # Cluster-level DE -----
-
 ## Between cluster DE Analysis
 DefaultAssay(integrated) <- 'RNA'
-integrated <- NormalizeData(integrated, verbose = T)
-integrated <- ScaleData(integrated, verbose = T)
+integrated <- NormalizeData(integrated, verbose = TRUE)
+integrated <- ScaleData(integrated, verbose = TRUE)
 
 DE <- FindAllMarkers(integrated, min.pct = 0, logfc.threshold = 0, test.use = 'MAST')
 
@@ -593,8 +546,6 @@ for (i in seq_along(levels(DE$cluster))) {
   }
 }
 
-
-
 rm(
   i,
   single.DE,
@@ -602,8 +553,6 @@ rm(
   )
 
 gc()
-
-
 
 ## Within cluster DE Analysis
 c01 <- subset(integrated, idents = c('Granulocytes 1'))
@@ -632,8 +581,6 @@ c.list <- list(
   c11
   )
 
-
-
 rm(
   c01,
   c02,
@@ -650,12 +597,10 @@ rm(
 
 gc()
 
-
-
 for(i in 1:length(c.list)){
   DefaultAssay(c.list[[i]]) <- 'RNA'
-  c.list[[i]] <- NormalizeData(c.list[[i]], verbose = T)
-  c.list[[i]] <- ScaleData(c.list[[i]], verbose = T)
+  c.list[[i]] <- NormalizeData(c.list[[i]], verbose = TRUE)
+  c.list[[i]] <- ScaleData(c.list[[i]], verbose = TRUE)
   c.list[[i]]$cell_origin <- paste(Idents(c.list[[i]]), c.list[[i]]$sample_origin, sep = '_')
   c.list[[i]]$cell <- Idents(c.list[[i]])
   Idents(c.list[[i]]) <- 'cell_origin'
@@ -668,8 +613,6 @@ for(i in 1:length(c.list)){
   write.csv(DE, here('output', 'DE', 'within cluster', paste0('DE_', i-1, '.csv')))
 }
 
-
-
 rm(
   i,
   c.list,
@@ -677,8 +620,6 @@ rm(
   )
 
 gc()
-
-
 
 ## fgsea
 GO.set <- msigdbr(species = 'Mus musculus', category = 'C5', subcategory = 'BP') # GO:BP
@@ -695,14 +636,18 @@ for (i in 1:length(geneSet_list)) {
     glist <- column_to_rownames(glist, var = 'gene')
     stats <- glist$avg_log2FC
     names(stats) <- toupper(rownames(glist))
-    stats <- sort(stats, decreasing = T)
+    stats <- sort(stats, decreasing = TRUE)
     eaRes <- fgsea(pathways = m_list, stats = stats, eps = 0.0, minSize = 10, maxSize = 500)
     eaRes <- arrange(eaRes, desc(NES))
-    fwrite(eaRes, file = here('output', 'GSEA', unique(geneSet_list[[i]]$gs_cat), paste0(unique(geneSet_list[[i]]$gs_cat), '_eaRes_', ii-1, '.tsv')), sep="\t", sep2=c("", " ", ""))
+    fwrite(
+      eaRes,
+      file = here(
+        'output',
+        'GSEA',
+        unique(geneSet_list[[i]]$gs_cat), paste0(unique(geneSet_list[[i]]$gs_cat), '_eaRes_', ii-1, '.tsv')), sep="\t", sep2=c("", " ", "")
+      )
   }
 }
-
-
 
 rm(geneSet_list,
    m_list,
@@ -717,8 +662,6 @@ rm(geneSet_list,
    ii)
 
 gc()
-
-
 
 GO.set <- msigdbr(species = 'Mus musculus', category = 'C5', subcategory = 'BP') # GO:BP
 CP.set <- msigdbr(species = 'Mus musculus', category = 'C2') %>% filter(gs_subcat != 'CGP') # CP
@@ -735,15 +678,20 @@ for (i in 1:length(geneSet_list)) {
       glist <- column_to_rownames(glist, var = 'gene')
       stats <- glist$avg_log2FC
       names(stats) <- toupper(rownames(glist))
-      stats <- sort(stats, decreasing = T)
+      stats <- sort(stats, decreasing = TRUE)
       eaRes <- fgsea(pathways = m_list, stats = stats, eps = 0.0, minSize = 10, maxSize = 500)
       eaRes <- arrange(eaRes, desc(NES))
-      fwrite(eaRes, file = here('output', 'GSEA', 'within cluster', unique(geneSet_list[[i]]$gs_cat), paste0(unique(geneSet_list[[i]]$gs_cat), '_eaRes_', ii-1, '_', iii, '.tsv')), sep="\t", sep2=c("", " ", ""))
+      fwrite(
+        eaRes,
+        file = here(
+          'output',
+          'GSEA',
+          'within cluster',
+          unique(geneSet_list[[i]]$gs_cat), paste0(unique(geneSet_list[[i]]$gs_cat), '_eaRes_', ii-1, '_', iii, '.tsv')), sep="\t", sep2=c("", " ", "")
+        )
     }
   }
 }
-
-
 
 rm(geneSet_list,
    m_list,
@@ -759,8 +707,6 @@ rm(geneSet_list,
    iii)
 
 gc()
-
-
 
 HM <- read_xlsx(here('output', 'GSEA', 'within cluster', 'Hif1a cKO split within cluster pathways.xlsx'), sheet = 'HM pathways')
 C2 <- read_xlsx(here('output', 'GSEA', 'within cluster', 'Hif1a cKO split within cluster pathways.xlsx'), sheet = 'C2 pathways')
@@ -790,17 +736,35 @@ for(i in 1:length(unique(C5$cluster_num))) {
     '
   )
   
-  write.csv(d3_sql, file = here('output', 'GSEA', 'within cluster', 'NES diff', 'C5', paste0('Hif1a cKO d3 NES diff_G', unique(C5$cluster_num)[i], '.csv')))
-  write.csv(d14_sql, file = here('output', 'GSEA', 'within cluster', 'NES diff', 'C5', paste0('Hif1a cKO d14 NES diff_G', unique(C5$cluster_num)[i], '.csv')))
+  write.csv(
+    d3_sql,
+    file = here(
+      'output',
+      'GSEA',
+      'within cluster',
+      'NES diff',
+      'C5',
+      paste0('Hif1a cKO d3 NES diff_G', unique(C5$cluster_num)[i], '.csv')
+    )
+  )
+
+  write.csv(
+    d14_sql,
+    file = here(
+      'output',
+      'GSEA',
+      'within cluster',
+      'NES diff',
+      'C5',
+      paste0('Hif1a cKO d14 NES diff_G', unique(C5$cluster_num)[i], '.csv')
+    )
+  )
 }
 
-
-
 # Compass ------
-
 DefaultAssay(integrated) <- 'RNA'
-integrated <- NormalizeData(integrated, verbose = T)
-integrated <- ScaleData(integrated, verbose = T)
+integrated <- NormalizeData(integrated, verbose = TRUE)
+integrated <- ScaleData(integrated, verbose = TRUE)
 
 first3 <- subset(integrated, idents = c('Granulocytes 1', 'Granulocytes 2', 'Granulocytes 3'))
 
@@ -952,7 +916,6 @@ ggpubr::annotate_figure(
   left = grid::textGrob(bquote(-log[10](BH-adjusted~Wilcoxon~rank~sum~p)), rot = 90, vjust = 0.5, gp = grid::gpar(cex = 1.3)),
   bottom = grid::textGrob("Cohen's d", gp = grid::gpar(cex = 1.3)))
 
-
 # Calculating metabolic activity
 null_micropool <- read.table(here('compass', 'd14_null', 'micropooled_data.tsv'), sep = '\t', header = TRUE, row.names = 1)
 cre_micropool <- read.table(here('compass', 'd14_cre', 'micropooled_data.tsv'), sep = '\t', header = TRUE, row.names = 1)
@@ -963,7 +926,6 @@ cre_micropool <- t(cre_micropool)
 null_micropool <- as.data.frame(null_micropool)
 cre_micropool <- as.data.frame(cre_micropool)
 
-
 null_micropool <- null_micropool %>%
   rowwise() %>%
   mutate(protein_sum = sum(c_across(everything())))
@@ -972,17 +934,13 @@ cre_micropool <- cre_micropool %>%
   rowwise() %>%
   mutate(protein_sum = sum(c_across(everything())))
 
-
 metabolic_genes <- read.csv('/Users/christopherhorn/Library/Python/3.8/lib/python/site-packages/compass/Resources/Recon2_export/gene_md.csv')
-
 
 metabolic_genes <- metabolic_genes %>%
   filter(MGI.symbol != 'N/A')
 
-
 metabolic_genes <- str_to_title(metabolic_genes$MGI.symbol)
 
-
 null_micropool <- null_micropool %>%
   rowwise() %>%
   mutate(metabolic_sum = sum(c_across(any_of((metabolic_genes)))))
@@ -990,7 +948,6 @@ null_micropool <- null_micropool %>%
 cre_micropool <- cre_micropool %>%
   rowwise() %>%
   mutate(metabolic_sum = sum(c_across(any_of((metabolic_genes)))))
-
 
 null_micropool <- null_micropool %>%
   rowwise() %>%
@@ -1000,18 +957,14 @@ cre_micropool <- cre_micropool %>%
   rowwise() %>%
   mutate(metabolic_activity = metabolic_sum / protein_sum)
 
-
 null_micropool <- null_micropool %>%
   select(c('protein_sum', 'metabolic_sum', 'metabolic_activity'))
 
 cre_micropool <- cre_micropool %>%
   select(c('protein_sum', 'metabolic_sum', 'metabolic_activity'))
-
 
 write.csv(null_micropool, here('compass', 'd14 null vs d14 cre', 'd14 null metabolic activity.csv'))
 write.csv(cre_micropool,here('compass', 'd14 null vs d14 cre', 'd14 cre metabolic activity.csv'))
-
-
 
 rm(
   null_micropool,
@@ -1019,10 +972,8 @@ rm(
   metabolic_genes
 )
 
-
-
 # PCA of compass meta rxn consistencies
-meta_rxn_consist <- read.csv(here('compass', 'd14 null vs d14 cre', 'd14 null vs cre compass metareaction consistencies.csv'), header = T)
+meta_rxn_consist <- read.csv(here('compass', 'd14 null vs d14 cre', 'd14 null vs cre compass metareaction consistencies.csv'), header = TRUE)
 meta_rxn_consist <- column_to_rownames(meta_rxn_consist, var = 'X')
 meta_rxn_consist <- as.data.frame(t(meta_rxn_consist))
 meta_rxn_consist.pca <- prcomp(meta_rxn_consist, scale. = TRUE)
@@ -1057,7 +1008,7 @@ p3 <- ggplot(met_activity, aes(x = PC2, y = PC3)) +
   scale_fill_manual(values = c('tomato', 'slateblue1')) +
   guides(fill = guide_legend(title = 'Cell genotype'))
 
-meta_rxn_consist.pca_plot <- ggpubr::ggarrange(p1, p2, p3, common.legend = T, legend = 'bottom', nrow = 1, ncol = 3)
+meta_rxn_consist.pca_plot <- ggpubr::ggarrange(p1, p2, p3, common.legend = TRUE, legend = 'bottom', nrow = 1, ncol = 3)
 
 rm(
   p1,
@@ -1152,7 +1103,7 @@ rm(
   )
 
 # PCs vs metabolic activity plots
-met_activity <- read.csv(here('compass', 'd14 null vs d14 cre', 'metabolic activity calculations.csv'), header = T) # PCA coords have already been added as columns
+met_activity <- read.csv(here('compass', 'd14 null vs d14 cre', 'metabolic activity calculations.csv'), header = TRUE) # PCA coords have already been added as columns
 
 p1 <- ggplot(met_activity, aes(x = PC1, y = metabolic_activity)) +
   geom_point(aes(shape = cell_genotype, color = maturity_score), size = 3) +
@@ -1220,7 +1171,10 @@ colnames(mature_cor)[2] <- 'mature_spearman'
 
 combine.cor <- merge(patho_cor, mature_cor, by = 'rowname')
 
-rm(patho_cor, mature_cor)
+rm(
+  patho_cor,
+  mature_cor
+)
 
 compass.result <- read.csv(here('compass', 'd14 null vs d14 cre', 'd14 null vs cre compass analysis results.csv'), header = TRUE)
 colnames(compass.result)[1] <- 'rowname'
@@ -1231,7 +1185,12 @@ compass.result <- compass.result %>%
   mutate(signed_neg_log_p = neg_log_p*sign(cohens_d))
 
 compass.cor <- merge(compass.result, combine.cor, by = 'rowname')
-rm(compass.result, met_activity, combine.cor)
+
+rm(
+  compass.result,
+  met_activity,
+  combine.cor
+)
 
 write.csv(compass.cor, here('compass', 'd14 null vs d14 cre', 'meta_rxn correlation with patho mature.csv'))
 
@@ -1253,7 +1212,10 @@ ggplot(compass.cor, aes(x = signed_neg_log_p, y = mature_spearman)) +
   Seurat::NoLegend() +
   geom_point(data = subset(compass.cor, subset = subsystem == 'Glycolysis/gluconeogenesis'), fill = 'red', shape = 21, color = 'black', size = 3)
 
-rm(compass.cor, meta_rxn_consist)
+rm(
+  compass.cor,
+  meta_rxn_consist
+)
 
 # Generating marker gene x meta rxn heatmap
 meta_rxn_consist <- read.csv(here('compass', 'd14 null vs d14 cre', 'd14 null vs cre compass metareaction consistencies.csv'), header = TRUE)
@@ -1269,7 +1231,31 @@ expression <- t(expression)
 expression <- as.data.frame(expression)
 expression <- rownames_to_column(expression, var = 'rowname')
 expression <- expression %>%
-  select(c('rowname', 'Il1b', 'Clec4e',	'Junb',	'Ctsd',	'Wfdc17',	'Il1f9',	'Pla2g7',	'Arg2',	'Cd84',	'Lcn2',	'Prdx5',	'Ngp',	'Camp',	'Ltf',	'Arhgdib',	'Anxa1',	'Plbd1',	'Tkt',	'Aldh2',	'Ly6c2',	'Adpgk',	'Cd177'))
+  select(c(
+    'rowname',
+    'Il1b',
+    'Clec4e',
+    'Junb',
+    'Ctsd',
+    'Wfdc17',
+    'Il1f9',
+    'Pla2g7',
+    'Arg2',
+    'Cd84',
+    'Lcn2',
+    'Prdx5',
+    'Ngp',
+    'Camp',
+    'Ltf',
+    'Arhgdib',
+    'Anxa1',
+    'Plbd1',
+    'Tkt',
+    'Aldh2',
+    'Ly6c2',
+    'Adpgk',
+    'Cd177'
+  ))
 
 combined.consist_express <- merge(expression, meta_rxn_consist, by = 'rowname')
 combined.consist_express <- column_to_rownames(combined.consist_express, var = 'rowname')
@@ -1290,7 +1276,7 @@ rm(
   combined.consist_express,
   expression,
   meta_rxn_consist
-  )
+)
 
 write.csv(cor.table, here('compass', 'd14 null vs d14 cre', 'maturity genes correlation compass results heatmap.csv'))
 
@@ -1304,14 +1290,17 @@ cor.table <- cor.table %>%
 
 heatmap.data <- as.matrix(cor.table)
 
-rm(cor.table, compass.result)
+rm(
+  cor.table,
+  compass.result
+)
 
 ha <- ComplexHeatmap::HeatmapAnnotation(
   'Gene markers' = c(rep('Pathogenic', 9), rep('Maturity', 13)),
   col = list('Gene markers' = c('Pathogenic' = 'tomato', 'Maturity' = 'slateblue1')),
   gp = grid::gpar(col = 'black'),
   show_annotation_name = FALSE
-  )
+)
 
 col_fun = circlize::colorRamp2(c(-1, 0, 1), c('blue', 'white', 'red'))
 
@@ -1331,12 +1320,9 @@ ComplexHeatmap::Heatmap(
   column_names_rot = 45,
   border = TRUE,
   top_annotation = ha
-  )
-
-
+)
 
 # Single-cell GSEA ------
-
 GS <- getGeneSets(library = 'H', species = 'Mus musculus')
 # GS <- getGeneSets(library = 'C5', species = 'Mus musculus')
 ES <- enrichIt(neutro.integrated, gene.sets = GS, groups = 1000, cores = 2)
@@ -1349,13 +1335,9 @@ multi_dittoPlot(neutro.integrated, vars = c('HALLMARK_APOPTOSIS', 'HALLMARK_FATT
                 ylab = 'Enrichment Scores', 
                 theme = theme_classic() + theme(plot.title = element_text(size = 10)))
 
-
-
 ES2 <- data.frame(neutro.integrated[[]], Idents(neutro.integrated))
 colnames(ES2)[ncol(ES2)] <- 'cluster'
 ridgeEnrichment(ES2, gene.set = 'HALLMARK_HYPOXIA', group = 'seurat_clusters', add.rug = TRUE) # Add 'facet = 'Sample.ID'' to split by day
-
-
 
 PCA <- performPCA(enriched = ES2, groups = c('seurat_clusters', 'Sample.ID'))
 pcaEnrichment(PCA, PCx = 'PC1', PCy = 'PC2', contours = TRUE)
@@ -1363,17 +1345,12 @@ pcaEnrichment(PCA, PCx = 'PC1', PCy = 'PC2', contours = FALSE, facet = 'seurat_c
 
 output <- getSignificance(ES2, group = 'seurat_clusters', fit = 'ANOVA') # Can use linear.model, T.test, or ANOVA
 
-
-
 # Complex Heatmap ------
-
 ## Average single cell data & pull out normalized counts
 ## Counts are normalized by dividing the counts for a given feature by the total counts per cell, multiplying by a scale factor (default == 10,000), and then taking the natural log using log1p()
 integrated$cell <- Idents(integrated)
 integrated$cell_origin <- paste(Idents(integrated), integrated$sample_origin, sep = "_")
 Idents(integrated) <- "cell_origin"
-
-
 DefaultAssay(integrated) <- 'RNA'
 integrated <- NormalizeData(integrated, verbose = TRUE)
 integrated <- ScaleData(integrated, verbose = TRUE)
@@ -1388,7 +1365,7 @@ gran <- subset(integrated, idents = c(
   'Granulocytes 7',
   'Granulocytes 8',
   'Granulocytes 9'
-  ))
+))
 
 gran <- subset(integrated, idents = c(
   "Granulocytes 1_d3_null",
@@ -1499,7 +1476,7 @@ gene_list <- c(
   'Ly6c2',
   'Adpgk',
   'Cd177'
-  )
+)
 
 ## Filtering average Seurat object for genes in pathway
 heatmap.data <- avg.norm_counts %>%
@@ -1563,8 +1540,6 @@ col_order <- c(
 )
 
 heatmap.data <- heatmap.data[, col_order]
-
-
 
 colnames(heatmap.data) <- c('G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9')
 
@@ -1661,8 +1636,6 @@ ComplexHeatmap::Heatmap(heatmap.data,
                           grid::grid.text(sprintf("%.1f", heatmap.data[i, j]), x, y, gp = grid::gpar(fontsize = 10))
                         })
 
-
-
 # Within-cluster pathways
 pathway_list <- c(
   'REACTOME_RHO_GTPASES_ACTIVATE_NADPH_OXIDASES',
@@ -1744,7 +1717,6 @@ celltype_anno <- c('N/A',
                    'Granulocyte',
                    'Granulocyte')
 
-
 which(heatmap.data == max(heatmap.data), arr.ind = TRUE) # Use this to find the max value within the matrix so that you can set your upper bound
 which(heatmap.data == min(heatmap.data), arr.ind = TRUE) # Use this to find the min value within the matrix so that you can set your lower bound
 
@@ -1761,7 +1733,7 @@ ht <- ComplexHeatmap::Heatmap(heatmap.data,
                               cluster_rows = TRUE,
                               cluster_row_slices = FALSE,
                               row_gap = grid::unit(5, 'mm'),
-                              show_parent_dend_line = F,
+                              show_parent_dend_line = FALSE,
                               heatmap_legend_param = list(border = 'black'),
                               cell_fun = function(j, i, x, y, width, height, fill) {
                                 if(heatmap2.data[i, j] < 0.0001) {
@@ -1776,8 +1748,6 @@ ht <- ComplexHeatmap::Heatmap(heatmap.data,
                               })
 
 ComplexHeatmap::draw(ht, padding = unit(c(70, 5, 2, 5), 'mm')) # bottom, left, top, right paddings
-
-
 
 # Top 10 pathways by NES
 pathways <- pathways %>%
@@ -1818,8 +1788,6 @@ heatmap2.data <- as.matrix(heatmap2.data)
 heatmap2.data <- heatmap2.data[rowSums(heatmap2.data) != 0, ]
 heatmap2.data <- t(heatmap2.data)
 
-
-
 heatmap.data <- pathways %>%
   filter(pathway %in% pathway_list)
 heatmap.data <- reshape2::dcast(heatmap.data, pathway ~ cluster_name + cluster_subset, value.var = 'NES', fill = 0)
@@ -1835,8 +1803,6 @@ heatmap2.data <- column_to_rownames(heatmap2.data, var = 'pathway')
 heatmap2.data <- as.matrix(heatmap2.data)
 heatmap2.data <- heatmap2.data[rowSums(heatmap2.data) != 0, ]
 heatmap2.data <- t(heatmap2.data)
-
-
 
 row_order <- c(
   'd3_null',
@@ -2061,7 +2027,7 @@ ht <- ComplexHeatmap::Heatmap(heatmap.data,
                               cluster_row_slices = FALSE,
                               row_split = row_anno,
                               row_gap = grid::unit(5, 'mm'),
-                              show_parent_dend_line = F,
+                              show_parent_dend_line = FALSE,
                               heatmap_legend_param = list(border = 'black'),
                               cell_fun = function(j, i, x, y, width, height, fill) {
                                 if(heatmap2.data[i, j] < 0.0001) {
@@ -2076,8 +2042,6 @@ ht <- ComplexHeatmap::Heatmap(heatmap.data,
                               })
 
 ComplexHeatmap::draw(ht, padding = unit(c(110, 5, 2, 5), 'mm')) # bottom, left, top, right paddings
-
-
 
 # Top 10 expressed genes by cluster
 # From DE data
@@ -2184,8 +2148,6 @@ htmp_range <- c(max(heatmap.data), -min(heatmap.data))
 htmp_range <- max(htmp_range)
 htmp_range <- ceiling(htmp_range)
 
-
-
 col_fun = circlize::colorRamp2(c(-htmp_range, 0, htmp_range), c('blue', 'white', 'red'))
 
 ht <- ComplexHeatmap::Heatmap(heatmap.data,
@@ -2218,12 +2180,8 @@ ht <- ComplexHeatmap::Heatmap(heatmap.data,
 
 ComplexHeatmap::draw(ht, padding = unit(c(2, 5, 2, 5), 'mm')) # bottom, left, top, right paddings
 
-
-
 # Trajectory Analysis -----
-
 # Finding trajectories =====
-
 ## Inferring trajectories
 object_counts <- Matrix::t(as(as.matrix(neutro.integrated@assays$RNA@counts), 'sparseMatrix'))
 object_expression <- Matrix::t(as(as.matrix(neutro.integrated@assays$RNA@data), 'sparseMatrix'))
@@ -2232,23 +2190,26 @@ neutro.integrated_dyn <- wrap_expression(
   expression = object_expression
 )
 
-rm(object_counts, object_expression)
+rm(
+  object_counts,
+  object_expression
+)
 
 ## Add a dimensionality reduction
 neutro.integrated_dimred <- dyndimred::dimred_umap(neutro.integrated_dyn$expression)
 
 ## Infer the trajectory
-neutro.integrated_model <- infer_trajectory(neutro.integrated_dyn, ti_slingshot(), verbose = T)
+neutro.integrated_model <- infer_trajectory(neutro.integrated_dyn, ti_slingshot(), verbose = TRUE)
 
 ## Plot trajectory & pseudotime
-neutro.integrated_milestone.umap <- plot_dimred(neutro.integrated_model, label_milestones = T, dimred = neutro.integrated_dimred, hex_cells = F) + theme_classic() + theme(legend.position = 'none', axis.text = element_blank(), axis.ticks = element_blank()) + labs(x = 'UMAP 1', y = 'UMAP 2') ## Check this prior to rooting
-neutro.integrated_milestone.pca <- plot_dimred(neutro.integrated_model, label_milestones = T, dimred = 'pca', hex_cells = F) + theme_classic() + theme(legend.position = 'none', axis.text = element_blank(), axis.ticks = element_blank()) + labs(x = 'PC 1', y = 'PC 2') ## Check this prior to rooting
-neutro.integrated_traj.umap <- plot_dimred(neutro.integrated_model, dimred = neutro.integrated_dimred, grouping = neutro.integrated@active.ident, color_density = 'grouping', hex_cells = F) + theme_classic() + theme(legend.position = 'none', axis.text = element_blank(), axis.ticks = element_blank()) + labs(x = 'UMAP 1', y = 'UMAP 2')
-neutro.integrated_traj.pca <- plot_dimred(neutro.integrated_model, dimred = 'pca', grouping = neutro.integrated@active.ident, color_density = 'grouping', hex_cells = F) + theme_classic() + theme(legend.position = 'none', axis.text = element_blank(), axis.ticks = element_blank()) + labs(x = 'PC 1', y = 'PC 2')
-neutro.integrated_traj2.umap <- plot_dimred(neutro.integrated_model, dimred = neutro.integrated_dimred, grouping = neutro.integrated@meta.data$Sample.ID, color_density = 'grouping', hex_cells = F) + theme_classic() + theme(legend.position = 'none', axis.text = element_blank(), axis.ticks = element_blank()) + labs(x = 'UMAP 1', y = 'UMAP 2')
-neutro.integrated_traj2.pca <- plot_dimred(neutro.integrated_model, dimred = 'pca', grouping = neutro.integrated@meta.data$Sample.ID, color_density = 'grouping', hex_cells = F) + theme_classic() + theme(legend.position = 'none', axis.text = element_blank(), axis.ticks = element_blank()) + labs(x = 'PC 1', y = 'PC 2')
-neutro.integrated_pseudo.umap <- plot_dimred(neutro.integrated_model, "pseudotime", pseudotime = calculate_pseudotime(neutro.integrated_model), dimred = neutro.integrated_dimred, hex_cells = F) + theme_classic() + labs(x = 'UMAP 1', y = 'UMAP 2') + theme(axis.text = element_blank(), axis.ticks = element_blank())
-neutro.integrated_pseudo.pca <- plot_dimred(neutro.integrated_model, "pseudotime", pseudotime = calculate_pseudotime(neutro.integrated_model), dimred = 'pca', hex_cells = F) + theme_classic() + labs(x = 'PC 1', y = 'PC 2') + theme(axis.text = element_blank(), axis.ticks = element_blank())
+neutro.integrated_milestone.umap <- plot_dimred(neutro.integrated_model, label_milestones = TRUE, dimred = neutro.integrated_dimred, hex_cells = FALSE) + theme_classic() + theme(legend.position = 'none', axis.text = element_blank(), axis.ticks = element_blank()) + labs(x = 'UMAP 1', y = 'UMAP 2') ## Check this prior to rooting
+neutro.integrated_milestone.pca <- plot_dimred(neutro.integrated_model, label_milestones = TRUE, dimred = 'pca', hex_cells = FALSE) + theme_classic() + theme(legend.position = 'none', axis.text = element_blank(), axis.ticks = element_blank()) + labs(x = 'PC 1', y = 'PC 2') ## Check this prior to rooting
+neutro.integrated_traj.umap <- plot_dimred(neutro.integrated_model, dimred = neutro.integrated_dimred, grouping = neutro.integrated@active.ident, color_density = 'grouping', hex_cells = FALSE) + theme_classic() + theme(legend.position = 'none', axis.text = element_blank(), axis.ticks = element_blank()) + labs(x = 'UMAP 1', y = 'UMAP 2')
+neutro.integrated_traj.pca <- plot_dimred(neutro.integrated_model, dimred = 'pca', grouping = neutro.integrated@active.ident, color_density = 'grouping', hex_cells = FALSE) + theme_classic() + theme(legend.position = 'none', axis.text = element_blank(), axis.ticks = element_blank()) + labs(x = 'PC 1', y = 'PC 2')
+neutro.integrated_traj2.umap <- plot_dimred(neutro.integrated_model, dimred = neutro.integrated_dimred, grouping = neutro.integrated@meta.data$Sample.ID, color_density = 'grouping', hex_cells = FALSE) + theme_classic() + theme(legend.position = 'none', axis.text = element_blank(), axis.ticks = element_blank()) + labs(x = 'UMAP 1', y = 'UMAP 2')
+neutro.integrated_traj2.pca <- plot_dimred(neutro.integrated_model, dimred = 'pca', grouping = neutro.integrated@meta.data$Sample.ID, color_density = 'grouping', hex_cells = FALSE) + theme_classic() + theme(legend.position = 'none', axis.text = element_blank(), axis.ticks = element_blank()) + labs(x = 'PC 1', y = 'PC 2')
+neutro.integrated_pseudo.umap <- plot_dimred(neutro.integrated_model, "pseudotime", pseudotime = calculate_pseudotime(neutro.integrated_model), dimred = neutro.integrated_dimred, hex_cells = FALSE) + theme_classic() + labs(x = 'UMAP 1', y = 'UMAP 2') + theme(axis.text = element_blank(), axis.ticks = element_blank())
+neutro.integrated_pseudo.pca <- plot_dimred(neutro.integrated_model, "pseudotime", pseudotime = calculate_pseudotime(neutro.integrated_model), dimred = 'pca', hex_cells = FALSE) + theme_classic() + labs(x = 'PC 1', y = 'PC 2') + theme(axis.text = element_blank(), axis.ticks = element_blank())
 
 ## Root trajectory if necessary
 neutro.integrated_model <- add_root(neutro.integrated_model, root_milestone_id = "4")
@@ -2257,12 +2218,8 @@ neutro.integrated_model <- add_root(neutro.integrated_model, root_milestone_id =
 simp <- simplify_trajectory(neutro.integrated_model)
 simp_lab <- simp %>% label_milestones(c('1' = 'Stuck', '3' = 'Bifurcation', '4' = 'Mature', '5' = 'Immature'))
 
-
-
 # Plotting gene expression over pseudotime =====
-
 # Slingshot #####
-
 ## Get trajectory & clustering information for lineage acquisition (pseudotime)
 expression <- Matrix::t(as(as.matrix(neutro.integrated@assays$RNA@data), 'sparseMatrix'))
 ndim <- 20L
@@ -2300,27 +2257,40 @@ clusterings <- lapply(3:max_clusters, function(K){
 wh.cl <- which.max(sapply(clusterings, function(x){ x$silinfo$avg.width })) + 1
 labels <- clusterings[[min(c(wh.cl, 8))]]$clustering
 
-rm(ndim, optpoint, optpoint1, optpoint2, x, pca, proj, line, expression, clusterings, wh.cl, max_clusters)
-
-
+rm(
+  ndim,
+  optpoint,
+  optpoint1,
+  optpoint2,
+  x,
+  pca,
+  proj,
+  line,
+  expression,
+  clusterings,
+  wh.cl,
+  max_clusters
+)
 
 ## Find trajectory
 lineages <- getLineages(dimred, labels, start.clus = '4')
-sling <- getCurves(lineages, shrink = 1L, reweight = T, reassign = T, thresh = 0.001, maxit = 10L, stretch = 2L, smoother = 'smooth.spline', shrink.method = 'cosine') ## Parameters taken from dynverse ti_slingshot code
+sling <- getCurves(lineages, shrink = 1L, reweight = TRUE, reassign = TRUE, thresh = 0.001, maxit = 10L, stretch = 2L, smoother = 'smooth.spline', shrink.method = 'cosine') ## Parameters taken from dynverse ti_slingshot code
 
-rm(dimred, labels, lineages)
-
-
+rm(
+  dimred,
+  labels,
+  lineages
+)
 
 # TradeSeq #####
-
 ## Find optimal number of knots to use for GAM fitting
 counts <- neutro.integrated@assays$RNA@counts
 filt <- rowSums(counts > 1) >= 120 # Filtering transcripts (genes w/count of at least two in at least 120 different cells)
 counts.filt <- counts[filt, ]
+
 rm(filt)
 
-icMat <- evaluateK(counts = as.matrix(counts.filt), sds = sling, k = 3:15, nGenes = 300, verbose = T, plot = T)
+icMat <- evaluateK(counts = as.matrix(counts.filt), sds = sling, k = 3:15, nGenes = 300, verbose = TRUE, plot = TRUE)
 
 ## Fit GAM
 sce <- fitGAM(as.matrix(counts.filt), sling, nknots = 10) # SCE method
@@ -2329,13 +2299,13 @@ converge <- table(rowData(sce)$tradeSeq$converged) # Check whether genes converg
 # List method
 # control <- gam.control()
 # control$maxit <- 1000 # Set maximum number of iterations to 1,000
-# gamList <- fitGAM(counts = as.matrix(counts.filt), pseudotime = slingPseudotime(sling, na = F), cellWeights = slingCurveWeights(sling), control = control, sce = F)
+# gamList <- fitGAM(counts = as.matrix(counts.filt), pseudotime = slingPseudotime(sling, na = FALSE), cellWeights = slingCurveWeights(sling), control = control, sce = FALSE)
 # pvalLineage <- getSmootherPvalues(gamList)
 # statLineage <- getSmootherTestStats(gamList)
 
 ## Testing
-assoRes <- associationTest(sce, lineages = T) # Testing whether genes are significantly changed along pseudotime (independent lineages)
-startRes <- startVsEndTest(sce, lineages = T) # Testing whether genes are significantly changed between the start & end of pseudotime (independent lineages)
+assoRes <- associationTest(sce, lineages = TRUE) # Testing whether genes are significantly changed along pseudotime (independent lineages)
+startRes <- startVsEndTest(sce, lineages = TRUE) # Testing whether genes are significantly changed between the start & end of pseudotime (independent lineages)
 endRes <- diffEndTest(sce) # Testing whether genes are significantly changed at end of pseudotime
 patternRes <- patternTest(sce) # Testing whether genes have significantly different expression patterns throughout pseudotime
 earlyDE.plot <- plotGeneCount(curve = sling, counts = as.matrix(counts.filt), clusters = apply(slingClusterLabels(sling), 1, which.max), models = sce) # Visualize where knots are
@@ -2348,10 +2318,10 @@ assoRes.sig.lin2 <- rownames(assoRes)[which(p.adjust(assoRes$pvalue_2, "fdr") <=
 assoRes.sig.upset <- upset(fromList(list('Lineage 1' = assoRes.sig.lin1 , 'Lineage 2' = assoRes.sig.lin2)))
 
 yhatSmooth.1 <- predictSmooth(sce, gene = assoRes.sig.lin1, nPoints = 50)
-heatSmooth.1 <- pheatmap(t(scale(t(yhatSmooth.1[, 1:50]))), cluster_cols = F, show_rownames = F, show_colnames = F)
+heatSmooth.1 <- pheatmap(t(scale(t(yhatSmooth.1[, 1:50]))), cluster_cols = FALSE, show_rownames = FALSE, show_colnames = FALSE)
 
 yhatSmooth.2 <- predictSmooth(sce, gene = assoRes.sig.lin2, nPoints = 50)
-heatSmooth.2 <- pheatmap(t(scale(t(yhatSmooth.2[, 1:50]))), cluster_cols = F, show_rownames = F, show_colnames = F)
+heatSmooth.2 <- pheatmap(t(scale(t(yhatSmooth.2[, 1:50]))), cluster_cols = FALSE, show_rownames = FALSE, show_colnames = FALSE)
 
 ## Combining End & Pattern testing
 patternRes$Gene <- rownames(patternRes)
@@ -2362,10 +2332,13 @@ endRes$Gene <- rownames(endRes)
 endRes$end <- endRes$waldStat
 endRes.comp <- endRes[, c('Gene', 'end')]
 
-compare <- merge(patternRes.comp, endRes.comp, by = 'Gene', all = F)
+compare <- merge(patternRes.comp, endRes.comp, by = 'Gene', all = FALSE)
 compare$transientScore <- rank(-compare$end, ties.method = 'min')^2 + rank(compare$pattern, ties.method = 'random')^2
 
-rm(patternRes.comp, endRes.comp)
+rm(
+  patternRes.comp,
+  endRes.comp
+)
 
 ## Plotting
 ## Expression vs Pseudotime
@@ -2425,12 +2398,18 @@ for (xx in sort(cUniq)[1:6]) {
   assign(paste0('c', xx), p)
 }
 
-rm(geneId, ii, xx, p, cId, nPointsClus, cUniq, clusterLabels)
-
-
+rm(
+  geneId,
+  ii,
+  xx,
+  p,
+  cId,
+  nPointsClus,
+  cUniq,
+  clusterLabels
+)
 
 # TradeSeq GSEA #####
-
 ## fgsea
 geneSets <- msigdbr(species = 'Mus musculus', category = 'C5', subcategory = 'BP') # GO:BP
 # geneSets <- msigdbr(species = 'Mus musculus', category = 'C2', subcategory = 'CP:KEGG') # KEGG
@@ -2452,41 +2431,21 @@ fwrite(eaRes.lin2, file = here('Integrated', 'Pseudotime', 'Real time', 'TradeSe
 fwrite(eaRes.lin1_unique, file = here('Integrated', 'Pseudotime', 'Real time', 'TradeSeq', 'fgsea', 'GO_unique lineage 1 enrichment analysis.tsv'), sep="\t", sep2=c("", " ", ""))
 fwrite(eaRes.lin2_unique, file = here('Integrated', 'Pseudotime', 'Real time', 'TradeSeq', 'fgsea', 'GO_unique lineage 2 enrichment analysis.tsv'), sep="\t", sep2=c("", " ", ""))
 
-rm(geneSets, m_list, stats.lin1, stats.lin2)
+rm(
+  geneSets,
+  m_list,
+  stats.lin1,
+  stats.lin2
+)
 
-
-
-# Notes -----
-
-# If you'd like to do everything in three dimensions, use RumUMAP(object, dims = 1:n, n.components = 3L). Bringing this into
-# Slingshot requires you to create objects that contain the cell embeddings (object@reductions$umap@cell.embeddings) & the
-# clustering info (object@active.iden (or any grouping you desire)). You can then supply these to slingshot as you normally
-# would. If you would like to visualize, you could do the following (requires rgl package):
-
-# gg_color_hue <- function(n) {
-#   hues = seq(15, 375, length = n + 1)
-#   hcl(h = hues, l = 65, c = 100)[1:n]
-# }
-# plot3d.SlingshotDataSet(sds)
-# plot3d(rd, col = gg_color_hue(10)[cl], aspect = 'iso', add = T)
-
-
-# I'm not sure if using three dimensions has any clear benefit over using two, but it may.
-
-
-
-# Test area -----
-
-files_to_read <- list.files(path = 'output/brain/GSEA/monomac', pattern = '\\.tsv$', full.names = T)
+# Helper functions -----
+files_to_read <- list.files(path = 'output/brain/GSEA/monomac', pattern = '\\.tsv$', full.names = TRUE)
 all_files <- lapply(files_to_read, function(x) {
   read.table(file = x, 
              sep = '\t', 
-             header = T)
+             header = TRUE)
 })
 
 for(i in 1:length(all_files)) {
   write.csv(all_files[i], here('output', 'brain', 'GSEA', 'monomac', 'converted', paste0(list.files('output/brain/GSEA/monomac')[i], '.csv')))
 }
-
-
-

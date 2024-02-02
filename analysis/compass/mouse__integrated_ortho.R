@@ -4,9 +4,7 @@
 ## Created: 2021-08-05
 ## Updated: 2021-08-05
 
-
 ## Computing maturity score based on Seurat's AddModuleScore function
-
 object = combined.express
 features = list(gene_list)
 pool = rownames(combined.express)
@@ -63,27 +61,42 @@ rownames(x = features.scores.use) <- paste0(name, 1:cluster.length)
 features.scores.use <- as.data.frame(x = t(x = features.scores.use))
 rownames(x = features.scores.use) <- colnames(x = object)
 
-rm(ctrl.scores, ctrl.use, data.use, features, features.scores, cluster.length, ctrl, data.avg, data.cut, features.use, i, j, k, name, nbin, pool, seed, assay.data, object)
-
-
+rm(
+  ctrl.scores,
+  ctrl.use,
+  data.use,
+  features,
+  features.scores,
+  cluster.length,
+  ctrl, data.avg,
+  data.cut,
+  features.use,
+  i,
+  j,
+  k,
+  name,
+  nbin,
+  pool,
+  seed,
+  assay.data,
+  object
+)
 
 ## PCA of compass meta rxn consistencies
-
-meta_rxn_consist <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/compass meta rxn consistencies.csv', header = T)
+meta_rxn_consist <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/compass meta rxn consistencies.csv', header = TRUE)
 meta_rxn_consist <- column_to_rownames(meta_rxn_consist, var = 'X')
 meta_rxn_consist <- as.data.frame(t(meta_rxn_consist))
-meta_rxn_consist.pca <- prcomp(meta_rxn_consist, scale. = T)
+meta_rxn_consist.pca <- prcomp(meta_rxn_consist, scale. = TRUE)
 meta_rxn_consist.pca_coord <- meta_rxn_consist.pca$x[ , 1:3]
 meta_rxn_consist.pca_load <- meta_rxn_consist.pca$rotation[ , 1:3]
 
 write.csv(meta_rxn_consist.pca_coord, '/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/meta_rxn_pca_coord.csv')
 write.csv(meta_rxn_consist.pca_load, '/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/meta_rxn_pca_loadings.csv')
 
-met_activity <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/metabolic_activity_calculations.csv', header = T) # PCA coords have already been added as columns
+met_activity <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/metabolic_activity_calculations.csv', header = TRUE) # PCA coords have already been added as columns
 met_activity <- select(met_activity, -1)
 
 # PCA plots
-
 p1 <- ggplot(met_activity, aes(x = PC1, y = PC2)) +
   geom_point(shape = 21, color = 'black', size = 3, aes(fill = cell_type)) +
   theme_classic() +
@@ -105,12 +118,15 @@ p3 <- ggplot(met_activity, aes(x = PC2, y = PC3)) +
   scale_fill_manual(values = c('tomato', 'slateblue1')) +
   guides(fill = guide_legend(title = 'Cell type'))
 
-meta_rxn_consist.pca_plot <- ggpubr::ggarrange(p1, p2, p3, common.legend = T, legend = 'bottom', nrow = 1, ncol = 3)
+meta_rxn_consist.pca_plot <- ggpubr::ggarrange(p1, p2, p3, common.legend = TRUE, legend = 'bottom', nrow = 1, ncol = 3)
 
-rm(p1, p2, p3)
+rm(
+  p1,
+  p2,
+  p3
+)
 
 # PCs vs metabolic activity plots
-
 p1 <- ggplot(met_activity, aes(x = PC1, y = metabolic_activity)) +
   geom_point(aes(shape = cell_type, color = Seurat_maturity_score), size = 3) +
   geom_smooth(method = 'lm', color = 'black') +
@@ -141,21 +157,27 @@ p3 <- ggplot(met_activity, aes(x = PC3, y = metabolic_activity)) +
   viridis::scale_color_viridis(option = 'inferno', 'Maturity score') +
   annotate('text', x = -10, y = 0.12, label = paste('Pearson correlation:', round(cor(met_activity$metabolic_activity, met_activity$PC3), 3)))
 
-meta_rxn_consist.pca2_plot <- ggpubr::ggarrange(p1, p2, p3, common.legend = T, legend = 'bottom', nrow = 1, ncol = 3)
+meta_rxn_consist.pca2_plot <- ggpubr::ggarrange(p1, p2, p3, common.legend = TRUE, legend = 'bottom', nrow = 1, ncol = 3)
 
-rm(p1, p2, p3)
-
-rm(met_activity, meta_rxn_consist, meta_rxn_consist.pca, meta_rxn_consist.pca_coord, meta_rxn_consist.pca_load, meta_rxn_consist.pca_plot, meta_rxn_consist.pca2_plot)
-
-
+rm(
+  p1,
+  p2,
+  p3,
+  met_activity,
+  meta_rxn_consist,
+  meta_rxn_consist.pca,
+  meta_rxn_consist.pca_coord,
+  meta_rxn_consist.pca_load,
+  meta_rxn_consist.pca_plot,
+  meta_rxn_consist.pca2_plot
+)
 
 ## Signed -log x spearman plots
-
-meta_rxn_consist <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/compass meta rxn consistencies.csv', header = T)
+meta_rxn_consist <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/compass meta rxn consistencies.csv', header = TRUE)
 meta_rxn_consist <- column_to_rownames(meta_rxn_consist, var = 'X')
 meta_rxn_consist <- as.data.frame(t(meta_rxn_consist))
 
-met_activity <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/metabolic_activity_calculations.csv', header = T) # PCA coords have already been added as columns
+met_activity <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/metabolic_activity_calculations.csv', header = TRUE) # PCA coords have already been added as columns
 met_activity <- select(met_activity, -1)
 
 patho_cor <- as.data.frame(cor(meta_rxn_consist[-1], met_activity$Seurat_patho_score, method = 'spearman'))
@@ -168,9 +190,13 @@ colnames(patho_cor)[2] <- 'patho_spearman'
 colnames(mature_cor)[2] <- 'mature_spearman'
 
 combine.cor <- merge(patho_cor, mature_cor, by = 'rowname')
-rm(patho_cor, mature_cor)
 
-compass.result <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/compass analysis results.csv', header = T)
+rm(
+  patho_cor,
+  mature_cor
+)
+
+compass.result <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/compass analysis results.csv', header = TRUE)
 colnames(compass.result)[1] <- 'rowname'
 compass.result <- select(compass.result, c(1, 4:8))
 compass.result <- compass.result %>%
@@ -179,11 +205,16 @@ compass.result <- compass.result %>%
   mutate(signed_neg_log_p = neg_log_p*sign(cohens_d))
 
 compass.cor <- merge(compass.result, combine.cor, by = 'rowname')
-rm(compass.result, met_activity, combine.cor)
+
+rm(
+  compass.result,
+  met_activity,
+  combine.cor
+)
 
 write.csv(compass.cor, '/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/meta_rxn cor patho mature.csv')
 
-compass.cor <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/meta_rxn cor patho mature.csv', header = T) # Added column to highlight subsystems of interest
+compass.cor <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/meta_rxn cor patho mature.csv', header = TRUE) # Added column to highlight subsystems of interest
 
 ggplot(compass.cor %>% arrange(label_point), aes(x = signed_neg_log_p, y = patho_spearman)) +
   geom_point(aes(fill = label_point), shape = 21, color = 'black', size = 3) +
@@ -203,18 +234,18 @@ ggplot(compass.cor %>% arrange(label_point), aes(x = signed_neg_log_p, y = matur
   scale_fill_manual(values = c('gray', 'red')) +
   Seurat::NoLegend()
 
-rm(compass.cor, meta_rxn_consist)
-
-
+rm(
+  compass.cor,
+  meta_rxn_consist
+)
 
 ## Generating marker gene x meta rxn heatmap
-
-meta_rxn_consist <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/compass meta rxn consistencies.csv', header = T)
+meta_rxn_consist <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/compass meta rxn consistencies.csv', header = TRUE)
 meta_rxn_consist <- column_to_rownames(meta_rxn_consist, var = 'X')
 meta_rxn_consist <- as.data.frame(t(meta_rxn_consist))
 meta_rxn_consist <- rownames_to_column(meta_rxn_consist, var = 'rowname')
 
-expression <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/combined_express.csv', header = T)
+expression <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/combined_express.csv', header = TRUE)
 colnames(expression)[1] <- 'rowname'
 expression <- as.data.frame(expression)
 expression <- expression %>%
@@ -233,11 +264,17 @@ for (i in 1:22) {
   colnames(cor.table)[i+1] <- colnames(combined.consist_express)[i]
 }
 
-rm(cor.result, i, combined.consist_express, expression, meta_rxn_consist)
+rm(
+  cor.result,
+  i,
+  combined.consist_express,
+  expression,
+  meta_rxn_consist
+)
 
 write.csv(cor.table, '/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/maturity genes cor compass heatmap.csv')
 
-compass.result <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/compass analysis results.csv', header = T)
+compass.result <- read.csv('/Volumes/External/Research/PhD/Kielian_Lab/Data/Compass_metabolism/Integrated_ortho/compass analysis results.csv', header = TRUE)
 compass.result <- compass.result %>%
   filter(adjusted_pval < 0.1)
 
@@ -247,35 +284,25 @@ cor.table <- cor.table %>%
 
 heatmap.data <- as.matrix(cor.table)
 
-rm(cor.table, compass.result)
+rm(
+  cor.table,
+  compass.result
+)
 
-ha <- ComplexHeatmap::HeatmapAnnotation('Gene markers' = c(rep('MDSC', 9), rep('PMN', 13)), col = list('Gene markers' = c('MDSC' = 'tomato', 'PMN' = 'slateblue1')), gp = grid::gpar(col = "black"), show_annotation_name = F)
+ha <- ComplexHeatmap::HeatmapAnnotation('Gene markers' = c(rep('MDSC', 9), rep('PMN', 13)), col = list('Gene markers' = c('MDSC' = 'tomato', 'PMN' = 'slateblue1')), gp = grid::gpar(col = "black"), show_annotation_name = FALSE)
 col_fun = circlize::colorRamp2(c(-1, 0, 1), c('blue', 'white', 'red'))
 ComplexHeatmap::Heatmap(heatmap.data,
                         name = 'Spearman correlation',
                         col = col_fun,
                         column_names_side = 'top',
-                        cluster_columns = F,
-                        cluster_column_slices = F,
-                        cluster_rows = T,
-                        cluster_row_slices = F,
-                        show_parent_dend_line = F,
-                        show_row_dend = F,
-                        show_column_dend = F,
-                        show_row_names = F,
+                        cluster_columns = FALSE,
+                        cluster_column_slices = FALSE,
+                        cluster_rows = TRUE,
+                        cluster_row_slices = FALSE,
+                        show_parent_dend_line = FALSE,
+                        show_row_dend = FALSE,
+                        show_column_dend = FALSE,
+                        show_row_names = FALSE,
                         column_names_rot = 45,
-                        border = T,
+                        border = TRUE,
                         top_annotation = ha)
-
-
-
-
-
-
-
-
-
-
-
-
-
