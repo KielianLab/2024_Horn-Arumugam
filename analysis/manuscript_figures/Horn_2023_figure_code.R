@@ -23,7 +23,7 @@ packages <- c(
   "ggpubr",
   "ggrepel",
   "ggvenn",
-  "devEMF"
+  "svglite"
 )
 
 # Check overlap between existing & new packages; install new (if any)
@@ -70,9 +70,9 @@ p <- p + theme(legend.position = "bottom")
 
 # Save plot
 ggsave(
-  "emf__Figure 1B.emf",
+  "svg__Figure 1B.svg",
   plot = p,
-  device = devEMF::emf(),
+  device = "svg",
   width = 3587,
   height = 2799,
   unit = "px",
@@ -180,12 +180,10 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c(0, htmp_range), c("white", "red"))
 
 # Create & save heatmap
-devEMF::emf(
-  here("Figure 1", "emf__Figure 1C.emf"),
-  units = "mm",
-  width = 130,
-  height = 150,
-  coordDPI = 600
+svglite::svglite(
+  here("Figure 1", "svg__Figure 1C.svg"),
+  width = 6,
+  height = 6
 )
 
 ht <- Heatmap(
@@ -315,12 +313,10 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c( 0, htmp_range), c("white", "red"))
 
 # Create heatmap
-devEMF::emf(
-  here("Figure 2", "emf__Figure 2A.emf"),
-  units = "mm",
-  width = 150,
-  height = 135,
-  coordDPI = 600
+svglite::svglite(
+  here("Figure 2", "svg__Figure 2A.svg"),
+  width = 6,
+  height = 5.5
 )
 
 ht <- Heatmap(
@@ -491,12 +487,10 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c(0, htmp_range), c("white", "red"))
 
 # Create heatmap
-devEMF::emf(
-  here("Figure 2", "emf__Figure 2B.emf"),
-  units = "mm",
-  width = 75,
-  height = 130,
-  coordDPI = 600
+svglite::svglite(
+  here("Figure 2", "svg__Figure 2B.svg"),
+  width = 3,
+  height = 5.5
 )
 
 ht <- Heatmap(
@@ -664,9 +658,9 @@ p5 <- annotate_figure(
 final <- p | figure
 
 ggsave(
-  "emf__Figure 2C.emf",
+  "svg__Figure 2C.svg",
   plot = final,
-  device = devEMF::emf(),
+  device = "svg",
   path = here("Figure 2"),
   width = 14,
   height = 7,
@@ -740,9 +734,9 @@ p2 <- ggtexttable(p2_d, rows = NULL, theme = ttheme("light"))
 final <- p1 / p2
 
 ggsave(
-  "emf__Figure 2D.emf",
+  "svg__Figure 2D.svg",
   plot = final,
-  device = devEMF::emf(),
+  device = "svg",
   units = "in",
   width = 8,
   height = 8,
@@ -808,9 +802,9 @@ vln3 <- VlnPlot(
 vln <- vln1 | vln2 | vln3
 
 ggsave(
-  "emf__Figure 4A.emf",
+  "svg__Figure 4A.svg",
   plot = vln,
-  device = devEMF::emf(),
+  device = "svg",
   path = here("Figure 4"),
   width = 14,
   height = 7,
@@ -841,9 +835,9 @@ integrated_umap.clus <- DimPlot(
 )
 
 ggsave(
-  "emf__Figure 9A.emf",
+  "svg__Figure 9A.svg",
   plot = integrated_umap.clus,
-  device = devEMF::emf(),
+  device = "svg",
   units = "in",
   width = 8,
   height = 8,
@@ -951,9 +945,9 @@ vln6 <- vln6 + scale_fill_nejm(labels = c(bquote(bolditalic(D3~Mrp8^Null/Hif1a^{
 vln <- (vln1 | vln2 | vln3) / (vln4 | vln5 | vln6) + plot_layout(guides = "collect") & theme(legend.position = "bottom", legend.text = element_text(face = "bold", size = 12))
 
 ggsave(
-  "pdf__Figure 9B.pdf",
+  "svg__Figure 9B.svg",
   plot = vln,
-  device = "pdf", # Will not save as an EMF!
+  device = "svg",
   units = "in",
   width = 10,
   height = 8,
@@ -1249,12 +1243,10 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c(-htmp_range, 0, htmp_range), c("blue", "white", "red"))
 
 # Create heatmap
-devEMF::emf(
-  here("Figure 9", "emf__Figure 9C.emf"),
-  units = "in",
+svglite::svglite(
+  here("Figure 9", "svg__Figure 9C.svg"),
   width = 20,
-  height = 15,
-  # coordDPI = 600 # Creates an invalid bitmap @ this DPI. Going with Default (300)
+  height = 15
 )
 
 ht <- Heatmap(
@@ -1485,12 +1477,10 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c(-htmp_range, 0, htmp_range), c("blue", "white", "red"))
 
 # Create heatmap
-devEMF::emf(
-  here("Figure 10", "emf__Figure 10A.emf"),
-  units = "in",
+svglite::svglite(
+  here("Figure 10", "svg__Figure 10A.svg"),
   width = 10,
-  height = 10,
-  coordDPI = 600
+  height = 10
 )
 
 ht <- Heatmap(
@@ -1572,9 +1562,9 @@ up <- ggvenn(
 )
 
 ggsave(
-  "pdf__Figure 10B_1.pdf",
+  "svg__Figure 10B_1.svg",
   plot = up,
-  device = "pdf", # Will not save as an EMF!
+  device = "svg",
   units = "in",
   width = 8,
   height = 8,
@@ -1605,9 +1595,9 @@ dn <- ggvenn(
 )
 
 ggsave(
-  "pdf__Figure 10B_2.pdf",
+  "svg__Figure 10B_2.svg",
   plot = dn,
-  device = "pdf", # Will not save as an EMF!
+  device = "svg",
   units = "in",
   width = 8,
   height = 8,
@@ -1857,12 +1847,10 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c(-htmp_range, 0, htmp_range), c("blue", "white", "red"))
 
 # Create heatmap
-devEMF::emf(
-  here("Figure 10", "emf__Figure 10C.emf"),
-  units = "in",
+svglite::svglite(
+  here("Figure 10", "svg__Figure 10C.svg"),
   width = 20,
-  height = 15,
-  # coordDPI = 600 # Creates an invalid bitmap @ this DPI. Going with Default (300)
+  height = 15
 )
 
 ht <- Heatmap(
@@ -2162,12 +2150,10 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c(-htmp_range, 0, htmp_range), c("blue", "white", "red"))
 
 # Create heatmap
-devEMF::emf(
-  here("Figure 11", "emf__Figure 11A.emf"),
-  units = "in",
+svglite::svglite(
+  here("Figure 11", "svg__Figure 11A.svg"),
   width = 15,
-  height = 10,
-  coordDPI = 600 # Creates an invalid bitmap @ this DPI. Going with Default (300)
+  height = 10
 )
 
 ht <- Heatmap(
@@ -2259,9 +2245,9 @@ up <- ggvenn(
 )
 
 ggsave(
-  "pdf__Figure 11B_1.pdf",
+  "svg__Figure 11B_1.svg",
   plot = up,
-  device = "pdf", # Will not save as an EMF!
+  device = "svg",
   units = "in",
   width = 8,
   height = 8,
@@ -2297,9 +2283,9 @@ dn <- ggvenn(
 )
 
 ggsave(
-  "pdf__Figure 11B_2.pdf",
+  "svg__Figure 11B_2.svg",
   plot = dn,
-  device = "pdf", # Will not save as an EMF!
+  device = "svg",
   units = "in",
   width = 8,
   height = 8,
@@ -2587,12 +2573,10 @@ htmp_range <- ceiling(htmp_range)
 col_fun = colorRamp2(c(-htmp_range, 0, htmp_range), c("blue", "white", "red"))
 
 # Create heatmap
-devEMF::emf(
-  here("Figure 11", "emf__Figure 11C.emf"),
-  units = "in",
+svglite::svglite(
+  here("Figure 11", "svg__Figure 11C.svg"),
   width = 20,
-  height = 15,
-  # coordDPI = 600 # Creates an invalid bitmap @ this DPI. Going with Default (300)
+  height = 15
 )
 
 ht <- Heatmap(
